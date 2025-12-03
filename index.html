@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Pengurusan Fail Panitia Digital</title>
+    <!-- Tailwind CSS CDN for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for better aesthetics and focus */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f9fb;
+        }
+        .card {
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s;
+        }
+        .card:hover {
+            transform: translateY(-2px);
+        }
+        .panitia-item {
+            cursor: pointer;
+            transition: background-color 0.2s, box-shadow 0.2s;
+        }
+        .panitia-item:hover {
+            background-color: #e5e7eb;
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+        }
+        /* Style for required text fields */
+        .required-text::after {
+            content: " *";
+            color: #ef4444; /* Red color */
+        }
+    </style>
+</head>
+<body>
+
+    <div id="app-container" class="min-h-screen flex flex-col">
+        <!-- Header -->
+        <header class="bg-indigo-600 shadow-md p-4 text-white flex justify-between items-center">
+            <h1 class="text-2xl font-bold">SPPD: Sistem Panitia Digital</h1>
+            <div class="flex items-center space-x-4">
+                <p id="user-display" class="text-sm italic"></p>
+                <button id="logout-button" class="bg-red-500 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-full shadow-lg transition duration-300 hidden">
+                    Log Keluar
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <main class="flex-grow p-6">
+            <div id="loader" class="text-center mt-20 text-gray-600">
+                <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600 inline-block"></div>
+                <p class="mt-2">Memuatkan data sistem...</p>
+            </div>
+
+            <!-- All dynamic content will be rendered here -->
+            <div id="content-view" class="hidden"></div>
+        </main>
+
+        <!-- Modals for Add/Edit Content and Messages -->
+        <div id="modal-container">
+            <!-- Modal Tambah/Edit Item -->
+            <div id="crud-modal" class="fixed inset-0 bg-gray-600 bg-opacity-75 hidden items-center justify-center z-50 p-4" onclick="closeModal('crud-modal')">
+                <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-lg mx-auto transform transition-all" onclick="event.stopPropagation()">
+                    <h2 id="modal-title" class="text-xl font-bold mb-4 text-indigo-700">Tambah Item Baru</h2>
+                    <form id="crud-form">
+                        <input type="hidden" id="item-id">
+                        <div class="mb-4">
+                            <label for="item-title" class="block text-sm font-medium text-gray-700 required-text">Tajuk Dokumen/Item</label>
+                            <input type="text" id="item-title" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border">
+                        </div>
+                        <div class="mb-4">
+                            <label for="item-date" class="block text-sm font-medium text-gray-700 required-text">Tarikh</label>
+                            <input type="date" id="item-date" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border">
+                        </div>
+                        <div class="mb-4">
+                            <label for="item-content" class="block text-sm font-medium text-gray-700">Penerangan / Pautan (Link)</label>
+                            <textarea id="item-content" rows="3" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border"></textarea>
+                            <p class="text-xs text-gray-500 mt-1">Jika ini adalah fail muat naik (seperti Carta Organisasi), masukkan pautan Google Drive/SharePoint di sini.</p>
+                        </div>
+                        <div class="flex justify-end space-x-3">
+                            <button type="button" onclick="closeModal('crud-modal')" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition duration-150">Batal</button>
+                            <button type="submit" id="save-button" class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition duration-150">Simpan</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Modal Pengesahan (Confirmation) -->
+            <div id="confirm-modal" class="fixed inset-0 bg-gray-600 bg-opacity-75 hidden items-center justify-center z-50 p-4" onclick="closeModal('confirm-modal')">
+                <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm mx-auto transform transition-all" onclick="event.stopPropagation()">
+                    <h3 class="text-lg font-bold mb-4 text-red-700">Pengesahan Tindakan</h3>
+                    <p id="confirm-message" class="mb-6 text-gray-700">Adakah anda pasti mahu melakukan tindakan ini?</p>
+                    <div class="flex justify-end space-x-3">
+                        <button type="button" onclick="cancelConfirmation()" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition duration-150">Batal</button>
+                        <button type="button" id="confirm-action-button" class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition duration-150">Sah</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Mesej Ralat/Info -->
+            <div id="message-modal" class="fixed inset-0 bg-gray-600 bg-opacity-75 hidden items-center justify-center z-50 p-4" onclick="closeModal('message-modal')">
+                <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm mx-auto transform transition-all" onclick="event.stopPropagation()">
+                    <h3 id="message-title" class="text-lg font-bold mb-4 text-green-700">Berjaya!</h3>
+                    <p id="message-text" class="mb-6 text-gray-700">Tindakan telah selesai.</p>
+                    <div class="flex justify-end">
+                        <button type="button" onclick="closeModal('message-modal')" class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition duration-150">OK</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, addDoc, onSnapshot, collection, query, where, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Global variables provided by the Canvas environment
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        // Global Firebase and App State variables
+        let app, db, auth;
+        let userId = null;
+        let currentPanitia = null;
+        let currentFolder = null;
+        let activeSnapshotUnsubscribe = null; // For real-time listener cleanup
+
+        const panitiaList = [
+            "Panitia Bahasa Melayu", "Panitia Bahasa Inggeris", "Panitia Matematik", "Panitia Sains",
+            "Panitia Pendidikan Agama Islam", "Panitia Muzik", "Panitia Pendidikan Jasmani Kesihatan",
+            "Panitia Sejarah", "Panitia Bahasa Arab", "Panitia Reka Bentuk Teknologi"
+        ];
+
+        const folderList = [
+            { name: "Fail Induk (Pengurusan dan Perancangan)", icon: "📋" },
+            { name: "Fail Sukatan Pelajaran / Kurikulum", icon: "📚" },
+            { name: "Fail Mesyuarat Panitia", icon: "🗓️" },
+            { name: "Fail Program Kecemerlangan (Perancangan Strategik)", icon: "🚀" },
+            { name: "Fail Peperiksaan / Pentaksiran", icon: "📝" },
+            { name: "Fail Penyeliaan / Pencerapan", icon: "👀" },
+            { name: "Fail Penyemakan Buku Latihan Murid", icon: "🖍️" }
+        ];
+
+        // Path ke koleksi data awam (public data)
+        const getCollectionPath = () => `/artifacts/${appId}/public/data/panitia_items`;
+
+
+        // Fungsi untuk menguruskan paparan halaman (sistem routing asas)
+        window.renderView = function(viewName) {
+            const contentView = document.getElementById('content-view');
+            contentView.innerHTML = '';
+            contentView.classList.remove('hidden');
+
+            // Hentikan listener onSnapshot yang aktif jika ada
+            if (activeSnapshotUnsubscribe) {
+                activeSnapshotUnsubscribe();
+                activeSnapshotUnsubscribe = null;
+            }
+
+            switch (viewName) {
+                case 'panitia-dashboard':
+                    renderPanitiaDashboard();
+                    break;
+                case 'panitia-view':
+                    renderPanitiaFolderView();
+                    break;
+                case 'folder-content':
+                    renderFolderContent();
+                    break;
+                default:
+                    showMessage('Ralat', 'Paparan tidak diketahui.', 'text-red-700');
+            }
+        }
+
+        // --- FUNGSI UTILITY UI ---
+
+        window.closeModal = function(modalId) {
+            document.getElementById(modalId).classList.add('hidden');
+            document.getElementById(modalId).classList.remove('flex');
+        }
+
+        function showMessage(title, text, colorClass = 'text-green-700') {
+            const modal = document.getElementById('message-modal');
+            document.getElementById('message-title').textContent = title;
+            document.getElementById('message-title').className = `text-lg font-bold mb-4 ${colorClass}`;
+            document.getElementById('message-text').textContent = text;
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        // --- VIEW 1: AUTHENTICATION (Initial Check) ---
+        async function initializeAppAndAuth() {
+            document.getElementById('loader').classList.remove('hidden');
+            const loaderElement = document.getElementById('loader');
+            loaderElement.innerHTML = '<div class="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600 inline-block"></div><p class="mt-2">Memuatkan data sistem...</p>';
+
+            try {
+                if (Object.keys(firebaseConfig).length === 0) {
+                     throw new Error("Konfigurasi Firebase tidak tersedia. Pastikan persekitaran Canvas menyediakan konfigurasi.");
+                }
+
+                app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+                setLogLevel('debug'); // Penting untuk debugging Firebase
+
+                // Gunakan onAuthStateChanged untuk menguruskan state log masuk
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        userId = user.uid;
+                        document.getElementById('user-display').textContent = `ID Pengguna: ${userId.substring(0, 8)}...`;
+                        document.getElementById('logout-button').classList.remove('hidden');
+                        document.getElementById('loader').classList.add('hidden');
+                        renderView('panitia-dashboard');
+                    } else {
+                        // Jika tiada pengguna, cuba log masuk secara Anonymous
+                        signInAnonymously(auth)
+                            .then(userCredential => {
+                                console.log("Log masuk Anonymous berjaya.");
+                                // onAuthStateChanged akan mengendalikan pemuatan paparan seterusnya
+                            })
+                            .catch(error => {
+                                console.error("Ralat inisialisasi/pengesahan Firebase:", error);
+                                let errorMessage;
+
+                                if (error.code === 'auth/admin-restricted-operation' || error.code === 'auth/operation-not-allowed') {
+                                    errorMessage = `
+                                        <p class="text-xl font-bold text-red-700">Ralat Pengesahan Kritikal (auth/admin-restricted-operation)</p>
+                                        <p class="mt-4 text-gray-800">Operasi log masuk tanpa nama (Anonymous Sign-in) dihadkan.</p>
+                                        <p class="mt-2 text-gray-800 font-semibold">TINDAKAN DIPERLUKAN:</p>
+                                        <ol class="list-decimal list-inside ml-4 mt-2 text-left text-gray-700">
+                                            <li>Pergi ke Konsol Firebase anda.</li>
+                                            <li>Pilih <strong>Authentication</strong>, kemudian pergi ke tab <strong>Sign-in method</strong>.</li>
+                                            <li>Cari pembekal <strong>Anonymous</strong> dan klik ikon pensel untuk <strong>Mendayakan (Enable)</strong> kaedah ini.</li>
+                                        </ol>
+                                        <p class="mt-4 text-center">
+                                            
+                                        </p>
+                                    `;
+                                } else {
+                                    errorMessage = `<p class="text-red-600 font-bold">Ralat Pengesahan: ${error.message}</p>`;
+                                }
+
+                                loaderElement.innerHTML = `<div class="p-6 bg-red-100 border border-red-400 rounded-lg max-w-xl mx-auto">${errorMessage}</div>`;
+                                loaderElement.classList.remove('hidden');
+                            });
+                    }
+                });
+
+
+            } catch (error) {
+                console.error("Ralat inisialisasi aplikasi:", error);
+                const errorMessage = `<p class="text-red-600 font-bold">Gagal memulakan aplikasi: ${error.message}</p>`;
+                loaderElement.innerHTML = `<div class="p-6 bg-red-100 border border-red-400 rounded-lg max-w-xl mx-auto">${errorMessage}</div>`;
+                loaderElement.classList.remove('hidden');
+            }
+        }
+
+        // --- VIEW 2: PANITIA DASHBOARD (Pemilihan Panitia) ---
+        function renderPanitiaDashboard() {
+            const contentView = document.getElementById('content-view');
+            contentView.innerHTML = `
+                <h2 class="text-3xl font-extrabold text-gray-800 mb-6 border-b pb-2">Pilih Panitia Mata Pelajaran</h2>
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6" id="panitia-grid">
+                    <!-- Panitia tiles will be inserted here -->
+                </div>
+            `;
+            const panitiaGrid = document.getElementById('panitia-grid');
+
+            panitiaList.forEach(panitiaName => {
+                const card = document.createElement('div');
+                card.className = 'panitia-item bg-white p-6 rounded-xl shadow-lg border border-gray-200 flex flex-col items-center text-center';
+                card.innerHTML = `
+                    <span class="text-4xl mb-3">👨‍🏫</span>
+                    <h3 class="text-lg font-semibold text-indigo-700">${panitiaName}</h3>
+                    <p class="text-sm text-gray-500 mt-1">Klik untuk mengurus fail.</p>
+                `;
+                card.onclick = () => selectPanitia(panitiaName);
+                panitiaGrid.appendChild(card);
+            });
+        }
+
+        window.selectPanitia = function(panitiaName) {
+            currentPanitia = panitiaName;
+            renderView('panitia-view');
+        }
+
+        // --- VIEW 3: PANITIA FOLDER VIEW (Pemilihan Fail) ---
+        function renderPanitiaFolderView() {
+            const contentView = document.getElementById('content-view');
+            contentView.innerHTML = `
+                <div class="flex items-center space-x-3 mb-6">
+                    <button onclick="renderView('panitia-dashboard')" class="text-indigo-600 hover:text-indigo-800 font-medium">← Kembali ke Pilihan Panitia</button>
+                </div>
+                <h2 class="text-3xl font-extrabold text-gray-800 mb-6 border-b pb-2">${currentPanitia} - Pengurusan Fail</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="folder-grid">
+                    <!-- Folder tiles will be inserted here -->
+                </div>
+            `;
+            const folderGrid = document.getElementById('folder-grid');
+
+            folderList.forEach((folder, index) => {
+                const card = document.createElement('div');
+                card.className = 'panitia-item bg-white p-6 rounded-xl shadow-lg border border-indigo-100 flex flex-col justify-between';
+                card.innerHTML = `
+                    <div class="flex items-center space-x-3 mb-3">
+                        <span class="text-3xl">${folder.icon}</span>
+                        <h3 class="text-xl font-semibold text-gray-800">Fail ${index + 1}: ${folder.name}</h3>
+                    </div>
+                    <p class="text-sm text-gray-600">Lihat, tambah, edit dan padam dokumen berkaitan.</p>
+                `;
+                card.onclick = () => selectFolder(folder.name);
+                folderGrid.appendChild(card);
+            });
+        }
+
+        window.selectFolder = function(folderName) {
+            currentFolder = folderName;
+            renderView('folder-content');
+        }
+
+        // --- VIEW 4: FOLDER CONTENT (CRUD Data) ---
+        function renderFolderContent() {
+            const contentView = document.getElementById('content-view');
+            contentView.innerHTML = `
+                <div class="flex items-center space-x-3 mb-4">
+                    <button onclick="renderView('panitia-view')" class="text-indigo-600 hover:text-indigo-800 font-medium">← Kembali ke Fail Panitia</button>
+                </div>
+                <h2 class="text-3xl font-extrabold text-gray-800 mb-2">${currentPanitia}</h2>
+                <h3 class="text-2xl font-semibold text-indigo-700 mb-6 border-b pb-2">${currentFolder}</h3>
+                <div class="flex justify-end mb-4">
+                    <button onclick="openCrudModal('add')" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md flex items-center space-x-2 transition duration-150">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                        <span>Tambah Item Baru</span>
+                    </button>
+                </div>
+
+                <div id="content-list-container" class="bg-white p-4 rounded-xl shadow-lg">
+                    <p class="text-center text-gray-500">Memuatkan data...</p>
+                    <ul id="content-list" class="divide-y divide-gray-200">
+                        <!-- Content items will be listed here (via onSnapshot) -->
+                    </ul>
+                </div>
+            `;
+
+            // Mulakan listener Firebase onSnapshot
+            fetchContentRealtime();
+        }
+
+        // --- FUNGSI CRUD FIREBASE ---
+
+        function fetchContentRealtime() {
+            // Pastikan auth telah siap sebelum membuat query
+            if (!userId) {
+                console.error("Pengguna belum disahkan. Membatalkan fetchContentRealtime.");
+                document.getElementById('content-list').innerHTML = `<li class="p-4 text-center text-red-500">Ralat: Pengguna belum disahkan.</li>`;
+                return;
+            }
+
+            const collectionRef = collection(db, getCollectionPath());
+            const q = query(
+                collectionRef,
+                where("panitia", "==", currentPanitia),
+                where("folder", "==", currentFolder)
+                // orderBy("date", "desc") -- Dielakkan untuk mengelakkan keperluan indeks
+            );
+
+            // Jika ada listener aktif, hentikannya dahulu
+            if (activeSnapshotUnsubscribe) {
+                activeSnapshotUnsubscribe();
+            }
+
+            // Set listener baru
+            activeSnapshotUnsubscribe = onSnapshot(q, (snapshot) => {
+                const items = [];
+                snapshot.forEach((doc) => {
+                    items.push({ id: doc.id, ...doc.data() });
+                });
+                displayContentList(items.sort((a, b) => new Date(b.date) - new Date(a.date))); // Sort local
+            }, (error) => {
+                console.error("Ralat mendengar data Firestore:", error);
+                showMessage('Ralat Data', `Gagal memuatkan data: ${error.message}`, 'text-red-700');
+            });
+        }
+
+        function displayContentList(items) {
+            const listElement = document.getElementById('content-list');
+            listElement.innerHTML = ''; // Clear existing list
+
+            if (items.length === 0) {
+                listElement.innerHTML = `<li class="p-4 text-center text-gray-500">Tiada item di dalam fail ini. Sila tambah dokumen pertama anda.</li>`;
+                return;
+            }
+
+            items.forEach(item => {
+                // Pastikan item.content wujud dan bukan null
+                const contentText = item.content || 'Tiada penerangan/pautan.';
+                // Escape single quotes for use in function call
+                const escapedContent = contentText.replace(/'/g, "\\'"); 
+
+                const listItem = document.createElement('li');
+                listItem.className = 'p-4 flex justify-between items-center hover:bg-gray-50 transition duration-150 rounded-lg';
+                listItem.innerHTML = `
+                    <div class="flex-grow">
+                        <p class="text-lg font-semibold text-gray-900">${item.title}</p>
+                        <p class="text-sm text-indigo-600">Bertarikh: ${item.date}</p>
+                        ${contentText.startsWith('http') ? 
+                            `<a href="${contentText}" target="_blank" class="text-sm text-blue-600 hover:text-blue-800 underline block truncate max-w-lg">Pautan Dokumen (Klik)</a>` :
+                            `<p class="text-sm text-gray-600 truncate max-w-lg">${contentText}</p>`
+                        }
+                    </div>
+                    <div class="flex space-x-2">
+                        <button onclick="openCrudModal('edit', '${item.id}', '${item.title}', '${item.date}', '${escapedContent}')" 
+                                class="text-indigo-600 hover:text-indigo-800 p-2 rounded-full hover:bg-indigo-100 transition duration-150" title="Edit">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-6-1l-9-9V7m0 0h4m-4 0v4m-2 2L19 5l-2-2m-2 2l4 4"></path></svg>
+                        </button>
+                        <button onclick="promptDeleteConfirmation('${item.id}', '${item.title}')" 
+                                class="text-red-600 hover:text-red-800 p-2 rounded-full hover:bg-red-100 transition duration-150" title="Padam">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
+                    </div>
+                `;
+                listElement.appendChild(listItem);
+            });
+        }
+
+        window.openCrudModal = function(mode, id = '', title = '', date = '', content = '') {
+            const modal = document.getElementById('crud-modal');
+            const modalTitle = document.getElementById('modal-title');
+            const itemId = document.getElementById('item-id');
+            const itemTitle = document.getElementById('item-title');
+            const itemDate = document.getElementById('item-date');
+            const itemContent = document.getElementById('item-content');
+            const saveButton = document.getElementById('save-button');
+
+            itemId.value = id;
+            itemTitle.value = title;
+            itemDate.value = date;
+            itemContent.value = content;
+
+            if (mode === 'add') {
+                modalTitle.textContent = `Tambah Item Baru ke ${currentFolder}`;
+                saveButton.textContent = 'Tambah';
+                // Reset form fields for a new entry
+                itemTitle.value = '';
+                itemDate.value = new Date().toISOString().substring(0, 10);
+                itemContent.value = '';
+            } else {
+                modalTitle.textContent = `Edit Item: ${title}`;
+                saveButton.textContent = 'Simpan Perubahan';
+            }
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        document.getElementById('crud-form').onsubmit = async function(e) {
+            e.preventDefault();
+            const id = document.getElementById('item-id').value;
+            const title = document.getElementById('item-title').value;
+            const date = document.getElementById('item-date').value;
+            const content = document.getElementById('item-content').value;
+
+            closeModal('crud-modal');
+            document.getElementById('loader').classList.remove('hidden');
+
+            const itemData = {
+                panitia: currentPanitia,
+                folder: currentFolder,
+                title: title,
+                date: date,
+                content: content,
+                authorId: userId,
+                timestamp: new Date().toISOString()
+            };
+
+            try {
+                if (id) {
+                    // EDIT (Update)
+                    await updateDoc(doc(db, getCollectionPath(), id), itemData);
+                    showMessage('Berjaya', 'Item telah berjaya dikemaskini.');
+                } else {
+                    // ADD (Create)
+                    await addDoc(collection(db, getCollectionPath()), itemData);
+                    showMessage('Berjaya', 'Item baru telah berjaya ditambah.');
+                }
+            } catch (e) {
+                console.error("Ralat CRUD:", e);
+                showMessage('Ralat', `Gagal menyimpan data: ${e.message}`, 'text-red-700');
+            } finally {
+                document.getElementById('loader').classList.add('hidden');
+            }
+        }
+
+        window.promptDeleteConfirmation = function(id, title) {
+            const modal = document.getElementById('confirm-modal');
+            document.getElementById('confirm-message').innerHTML = `Adakah anda pasti mahu **PADAM** item:<br><span class="font-bold text-red-600">${title}</span>? Tindakan ini tidak boleh diundur.`;
+            const confirmButton = document.getElementById('confirm-action-button');
+
+            // Tetapkan fungsi yang akan dipanggil apabila 'Sah' ditekan
+            confirmButton.onclick = () => deleteItem(id);
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        window.cancelConfirmation = function() {
+            closeModal('confirm-modal');
+            document.getElementById('confirm-action-button').onclick = null; // Clear the action
+        }
+
+        async function deleteItem(id) {
+            closeModal('confirm-modal');
+            document.getElementById('loader').classList.remove('hidden');
+
+            try {
+                await deleteDoc(doc(db, getCollectionPath(), id));
+                showMessage('Berjaya', 'Item telah berjaya dipadam.');
+            } catch (e) {
+                console.error("Ralat Padam:", e);
+                showMessage('Ralat', `Gagal memadam item: ${e.message}`, 'text-red-700');
+            } finally {
+                document.getElementById('loader').classList.add('hidden');
+            }
+        }
+
+        // --- FUNGSI LOGOUT ---
+        document.getElementById('logout-button').onclick = async function() {
+            try {
+                await signOut(auth);
+                // Clear state and render initial view
+                currentPanitia = null;
+                currentFolder = null;
+                document.getElementById('user-display').textContent = '';
+                document.getElementById('logout-button').classList.add('hidden');
+                // Panggil semula inisialisasi untuk cuba log masuk semula secara Anonymous
+                initializeAppAndAuth();
+            } catch (e) {
+                console.error("Ralat Log Keluar:", e);
+                showMessage('Ralat', 'Gagal log keluar. Sila cuba lagi.', 'text-red-700');
+            }
+        }
+
+        // Mulakan aplikasi
+        initializeAppAndAuth();
+
+    </script>
+</body>
+</html>
