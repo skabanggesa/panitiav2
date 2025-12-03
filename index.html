@@ -120,9 +120,23 @@
         import { getFirestore, doc, addDoc, onSnapshot, collection, query, where, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Global variables provided by the Canvas environment
-        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        // --- KONFIGURASI SANDARAN (FALLBACK CONFIGURATION) ---
+        // Konfigurasi ini digunakan jika pembolehubah global persekitaran gagal dimuatkan.
+        // Berdasarkan projek 'panitia-5be3a'
+        const FALLBACK_FIREBASE_CONFIG = {
+            apiKey: "AIzaSyCXXXXXXXXXXXXXXXXXXXXX", // Gantikan dengan kunci API sebenar anda jika perlu
+            authDomain: "panitia-5be3a.firebaseapp.com",
+            projectId: "panitia-5be3a",
+            storageBucket: "panitia-5be3a.appspot.com",
+            messagingSenderId: "814796521590",
+            appId: "1:814796521590:web:c0e31fa985401bcc571f57"
+        };
+        const FALLBACK_APP_ID = "panitia-5be3a";
+
+
+        // Global variables provided by the Canvas environment (with fallback)
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : JSON.stringify(FALLBACK_FIREBASE_CONFIG));
+        const appId = typeof __app_id !== 'undefined' ? __app_id : FALLBACK_APP_ID;
         const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
         // Global Firebase and App State variables
@@ -202,10 +216,7 @@
             loaderElement.innerHTML = '<div class="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600 inline-block"></div><p class="mt-2">Memuatkan data sistem...</p>';
 
             try {
-                if (Object.keys(firebaseConfig).length === 0) {
-                     throw new Error("Konfigurasi Firebase tidak tersedia. Pastikan persekitaran Canvas menyediakan konfigurasi.");
-                }
-
+                // Tiada semakan 'length === 0' yang keras di sini; kami hanya menggunakan config yang ada.
                 app = initializeApp(firebaseConfig);
                 db = getFirestore(app);
                 auth = getAuth(app);
@@ -227,25 +238,15 @@
                                 // onAuthStateChanged akan mengendalikan pemuatan paparan seterusnya
                             })
                             .catch(error => {
-                                console.error("Ralat inisialisasi/pengesahan Firebase:", error);
-                                let errorMessage;
+                                console.error("Ralat pengesahan Firebase:", error);
+                                let errorMessage = `<p class="text-red-600 font-bold">Ralat Pengesahan: ${error.message}</p>`;
 
                                 if (error.code === 'auth/admin-restricted-operation' || error.code === 'auth/operation-not-allowed') {
                                     errorMessage = `
                                         <p class="text-xl font-bold text-red-700">Ralat Pengesahan Kritikal (auth/admin-restricted-operation)</p>
-                                        <p class="mt-4 text-gray-800">Operasi log masuk tanpa nama (Anonymous Sign-in) dihadkan.</p>
-                                        <p class="mt-2 text-gray-800 font-semibold">TINDAKAN DIPERLUKAN:</p>
-                                        <ol class="list-decimal list-inside ml-4 mt-2 text-left text-gray-700">
-                                            <li>Pergi ke Konsol Firebase anda.</li>
-                                            <li>Pilih <strong>Authentication</strong>, kemudian pergi ke tab <strong>Sign-in method</strong>.</li>
-                                            <li>Cari pembekal <strong>Anonymous</strong> dan klik ikon pensel untuk <strong>Mendayakan (Enable)</strong> kaedah ini.</li>
-                                        </ol>
-                                        <p class="mt-4 text-center">
-                                            
-                                        </p>
+                                        <p class="mt-4 text-gray-800">Operasi log masuk tanpa nama (Anonymous Sign-in) dihadkan di Konsol Firebase anda.</p>
+                                        <p class="mt-2 text-gray-800 font-semibold">Anda telah menyatakan ciri ini telah DIDAYAKAN. Jika ralat ini masih muncul, sila sahkan semula atau cuba Log Keluar dan Log Masuk semula.</p>
                                     `;
-                                } else {
-                                    errorMessage = `<p class="text-red-600 font-bold">Ralat Pengesahan: ${error.message}</p>`;
                                 }
 
                                 loaderElement.innerHTML = `<div class="p-6 bg-red-100 border border-red-400 rounded-lg max-w-xl mx-auto">${errorMessage}</div>`;
