@@ -32,31 +32,39 @@
             content: " *";
             color: #ef4444; /* Red color */
         }
+        .auth-container {
+            max-width: 420px;
+        }
     </style>
 </head>
 <body>
 
     <div id="app-container" class="min-h-screen flex flex-col">
         <!-- Header -->
-        <header class="bg-indigo-600 shadow-md p-4 text-white flex justify-between items-center">
+        <header id="app-header" class="bg-indigo-600 shadow-md p-4 text-white flex justify-between items-center hidden">
             <h1 class="text-2xl font-bold">SPPD: Sistem Panitia Digital</h1>
             <div class="flex items-center space-x-4">
                 <p id="user-display" class="text-sm italic"></p>
-                <button id="logout-button" class="bg-red-500 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-full shadow-lg transition duration-300 hidden">
+                <button id="logout-button" class="bg-red-500 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-full shadow-lg transition duration-300">
                     Log Keluar
                 </button>
             </div>
         </header>
 
         <!-- Main Content Area -->
-        <main class="flex-grow p-6">
+        <main class="flex-grow p-6 flex justify-center items-start">
             <div id="loader" class="text-center mt-20 text-gray-600">
                 <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600 inline-block"></div>
                 <p class="mt-2">Memuatkan data sistem...</p>
             </div>
 
+            <!-- Auth View (Log Masuk / Daftar) -->
+            <div id="auth-view" class="auth-container bg-white p-8 rounded-xl shadow-2xl mt-20 hidden w-full">
+                <!-- Auth Form will be injected here -->
+            </div>
+
             <!-- All dynamic content will be rendered here -->
-            <div id="content-view" class="hidden"></div>
+            <div id="content-view" class="hidden w-full"></div>
         </main>
 
         <!-- Modals for Add/Edit Content and Messages -->
@@ -116,13 +124,13 @@
     <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        // Tambah import untuk signInWithEmailAndPassword dan createUserWithEmailAndPassword
+        import { getAuth, onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, addDoc, onSnapshot, collection, query, where, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- KONFIGURASI SANDARAN (FALLBACK CONFIGURATION) ---
         // Konfigurasi ini digunakan jika pembolehubah global persekitaran gagal dimuatkan.
-        // Kunci API yang sah telah dimasukkan untuk membolehkan pengesahan Anonymous
         const FALLBACK_FIREBASE_CONFIG = {
             apiKey: "AIzaSyD834R5Au1ksM0h-G0imluipJIN1br2g2g", 
             authDomain: "panitia-5be3a.firebaseapp.com",
@@ -135,10 +143,12 @@
 
 
         // Global variables provided by the Canvas environment (with fallback)
-        // Jika __firebase_config disediakan oleh Canvas, ia akan digunakan. Jika tidak, ia akan fallback kepada konfigurasi di atas.
         const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : JSON.stringify(FALLBACK_FIREBASE_CONFIG));
         const appId = typeof __app_id !== 'undefined' ? __app_id : FALLBACK_APP_ID;
         const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        
+        // Pemboleh ubah untuk mengesan mod UI (login/register)
+        let isLoginMode = true;
 
         // Global Firebase and App State variables
         let app, db, auth;
@@ -170,23 +180,39 @@
         // Fungsi untuk menguruskan paparan halaman (sistem routing asas)
         window.renderView = function(viewName) {
             const contentView = document.getElementById('content-view');
-            contentView.innerHTML = '';
-            contentView.classList.remove('hidden');
+            const authView = document.getElementById('auth-view');
+            const appHeader = document.getElementById('app-header');
+            
+            // Sembunyikan semua paparan kecuali yang aktif
+            contentView.classList.add('hidden');
+            authView.classList.add('hidden');
+            appHeader.classList.add('hidden'); // Sembunyikan header secara lalai
 
             // Hentikan listener onSnapshot yang aktif jika ada
             if (activeSnapshotUnsubscribe) {
                 activeSnapshotUnsubscribe();
                 activeSnapshotUnsubscribe = null;
             }
-
+            
+            // Tentukan paparan yang aktif
             switch (viewName) {
+                case 'auth':
+                    authView.classList.remove('hidden');
+                    renderAuthView();
+                    break;
                 case 'panitia-dashboard':
+                    appHeader.classList.remove('hidden'); // Tunjukkan header setelah log masuk
+                    contentView.classList.remove('hidden');
                     renderPanitiaDashboard();
                     break;
                 case 'panitia-view':
+                    appHeader.classList.remove('hidden');
+                    contentView.classList.remove('hidden');
                     renderPanitiaFolderView();
                     break;
                 case 'folder-content':
+                    appHeader.classList.remove('hidden');
+                    contentView.classList.remove('hidden');
                     renderFolderContent();
                     break;
                 default:
@@ -212,12 +238,11 @@
 
         // --- VIEW 1: AUTHENTICATION (Initial Check) ---
         async function initializeAppAndAuth() {
-            document.getElementById('loader').classList.remove('hidden');
             const loaderElement = document.getElementById('loader');
             loaderElement.innerHTML = '<div class="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600 inline-block"></div><p class="mt-2">Memuatkan data sistem...</p>';
+            loaderElement.classList.remove('hidden');
 
             try {
-                
                 app = initializeApp(firebaseConfig);
                 db = getFirestore(app);
                 auth = getAuth(app);
@@ -225,42 +250,27 @@
 
                 // Gunakan onAuthStateChanged untuk menguruskan state log masuk
                 onAuthStateChanged(auth, (user) => {
+                    document.getElementById('loader').classList.add('hidden');
+
                     if (user) {
                         userId = user.uid;
-                        document.getElementById('user-display').textContent = `ID Pengguna: ${userId.substring(0, 8)}...`;
+                        // HANYA tunjukkan ID jika BUKAN anonymous (untuk aplikasi ini)
+                        if (user.isAnonymous) {
+                             document.getElementById('user-display').textContent = `Pengguna Anonymous`;
+                        } else {
+                            // Tunjukkan E-mel yang log masuk
+                            document.getElementById('user-display').textContent = `ID Pengguna: ${user.email}`;
+                        }
+                        
                         document.getElementById('logout-button').classList.remove('hidden');
-                        document.getElementById('loader').classList.add('hidden');
                         renderView('panitia-dashboard');
                     } else {
-                        // Jika tiada pengguna, cuba log masuk secara Anonymous
-                        signInAnonymously(auth)
-                            .then(userCredential => {
-                                console.log("Log masuk Anonymous berjaya.");
-                                // onAuthStateChanged akan mengendalikan pemuatan paparan seterusnya
-                            })
-                            .catch(error => {
-                                console.error("Ralat pengesahan Firebase:", error);
-                                let errorMessage = `<p class="text-red-600 font-bold">Ralat Pengesahan: ${error.message}</p>`;
-
-                                if (error.code === 'auth/operation-not-allowed') {
-                                     errorMessage = `
-                                        <p class="text-xl font-bold text-red-700">Ralat: Log Masuk Tanpa Nama Dimatikan</p>
-                                        <p class="mt-4 text-gray-800">Sila dayakan penyedia pengesahan 'Anonymous' dalam konsol Firebase anda (Authentication > Sign-in method).</p>
-                                    `;
-                                } else if (error.code === 'auth/api-key-not-valid' || error.code === 'auth/invalid-api-key') {
-                                    errorMessage = `
-                                        <p class="text-xl font-bold text-red-700">Ralat: Kunci API TIDAK SAH</p>
-                                        <p class="mt-4 text-gray-800">Walaupun anda telah masukkan kunci, terdapat masalah lain dengan konfigurasi Firebase anda.</p>
-                                    `;
-                                }
-
-
-                                loaderElement.innerHTML = `<div class="p-6 bg-red-100 border border-red-400 rounded-lg max-w-xl mx-auto">${errorMessage}</div>`;
-                                loaderElement.classList.remove('hidden');
-                            });
+                        // Jika tiada pengguna, tunjukkan paparan log masuk
+                        userId = null;
+                        document.getElementById('logout-button').classList.add('hidden');
+                        renderView('auth');
                     }
                 });
-
 
             } catch (error) {
                 console.error("Ralat inisialisasi aplikasi:", error);
@@ -269,6 +279,89 @@
                 loaderElement.classList.remove('hidden');
             }
         }
+        
+        // --- VIEW 1B: AUTHENTICATION FORM (Log Masuk / Daftar) ---
+        function renderAuthView() {
+            const authView = document.getElementById('auth-view');
+            authView.innerHTML = `
+                <h2 class="text-2xl font-bold mb-6 text-center text-indigo-700">${isLoginMode ? 'LOG MASUK PENGGUNA' : 'DAFTAR PENGGUNA BARU'}</h2>
+                <form id="auth-form" class="space-y-4">
+                    <div>
+                        <label for="email" class="block text-sm font-medium text-gray-700">E-mel</label>
+                        <input type="email" id="email" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border" placeholder="contoh@sekolah.edu.my">
+                    </div>
+                    <div>
+                        <label for="password" class="block text-sm font-medium text-gray-700">Kata Laluan</label>
+                        <input type="password" id="password" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border" placeholder="Minimum 6 aksara">
+                    </div>
+                    <p id="auth-error-message" class="text-sm text-red-500 hidden"></p>
+                    <button type="submit" class="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150">
+                        ${isLoginMode ? 'Log Masuk' : 'Daftar Sekarang'}
+                    </button>
+                </form>
+                <div class="mt-6 text-center">
+                    <button type="button" onclick="toggleAuthMode()" class="text-sm text-indigo-600 hover:text-indigo-800 underline">
+                        ${isLoginMode ? 'Belum mendaftar? Klik untuk Daftar' : 'Sudah ada akaun? Klik untuk Log Masuk'}
+                    </button>
+                </div>
+            `;
+            
+            document.getElementById('auth-form').onsubmit = handleAuth;
+        }
+        
+        window.toggleAuthMode = function() {
+            isLoginMode = !isLoginMode;
+            renderAuthView();
+        }
+
+        async function handleAuth(e) {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const errorMessageElement = document.getElementById('auth-error-message');
+            
+            errorMessageElement.classList.add('hidden');
+            document.getElementById('loader').classList.remove('hidden');
+
+            try {
+                if (isLoginMode) {
+                    // LOG MASUK
+                    await signInWithEmailAndPassword(auth, email, password);
+                    showMessage('Log Masuk Berjaya', 'Selamat datang ke SPPD!', 'text-green-700');
+                } else {
+                    // DAFTAR
+                    await createUserWithEmailAndPassword(auth, email, password);
+                    showMessage('Daftar Berjaya', 'Akaun anda telah dibuat. Sila Log Masuk.', 'text-green-700');
+                    isLoginMode = true; // Tukar kepada mod log masuk selepas pendaftaran
+                }
+            } catch (error) {
+                console.error("Ralat Pengesahan:", error);
+                
+                let userFriendlyMessage = 'Ralat tidak diketahui. Sila cuba lagi.';
+                switch(error.code) {
+                    case 'auth/user-not-found':
+                    case 'auth/wrong-password':
+                        userFriendlyMessage = 'E-mel atau kata laluan tidak sah.';
+                        break;
+                    case 'auth/email-already-in-use':
+                        userFriendlyMessage = 'E-mel ini sudah didaftarkan.';
+                        break;
+                    case 'auth/weak-password':
+                        userFriendlyMessage = 'Kata laluan terlalu lemah (minimum 6 aksara).';
+                        break;
+                    case 'auth/invalid-email':
+                        userFriendlyMessage = 'Format e-mel tidak sah.';
+                        break;
+                    default:
+                        userFriendlyMessage = `Ralat: ${error.message}`;
+                }
+                
+                errorMessageElement.textContent = userFriendlyMessage;
+                errorMessageElement.classList.remove('hidden');
+                document.getElementById('loader').classList.add('hidden');
+            }
+        }
+
 
         // --- VIEW 2: PANITIA DASHBOARD (Pemilihan Panitia) ---
         function renderPanitiaDashboard() {
@@ -454,7 +547,8 @@
             itemId.value = id;
             itemTitle.value = title;
             itemDate.value = date;
-            itemContent.value = content;
+            // Unescape the content for the textarea
+            itemContent.value = content.replace(/\\'/g, "'");
 
             if (mode === 'add') {
                 modalTitle.textContent = `Tambah Item Baru ke ${currentFolder}`;
@@ -512,7 +606,9 @@
 
         window.promptDeleteConfirmation = function(id, title) {
             const modal = document.getElementById('confirm-modal');
-            document.getElementById('confirm-message').innerHTML = `Adakah anda pasti mahu **PADAM** item:<br><span class="font-bold text-red-600">${title}</span>? Tindakan ini tidak boleh diundur.`;
+            // Ensure title is unescaped for display purposes
+            const unescapedTitle = title.replace(/\\'/g, "'");
+            document.getElementById('confirm-message').innerHTML = `Adakah anda pasti mahu **PADAM** item:<br><span class="font-bold text-red-600">${unescapedTitle}</span>? Tindakan ini tidak boleh diundur.`;
             const confirmButton = document.getElementById('confirm-action-button');
 
             // Tetapkan fungsi yang akan dipanggil apabila 'Sah' ditekan
@@ -545,14 +641,21 @@
         // --- FUNGSI LOGOUT ---
         document.getElementById('logout-button').onclick = async function() {
             try {
+                // Hentikan listener onSnapshot yang aktif jika ada
+                if (activeSnapshotUnsubscribe) {
+                    activeSnapshotUnsubscribe();
+                    activeSnapshotUnsubscribe = null;
+                }
+                
+                // 1. Log keluar secara rasmi
                 await signOut(auth);
-                // Clear state and render initial view
+
+                // 2. Clear state and UI feedback for visual confirmation
                 currentPanitia = null;
                 currentFolder = null;
                 document.getElementById('user-display').textContent = '';
-                document.getElementById('logout-button').classList.add('hidden');
-                // Panggil semula inisialisasi untuk cuba log masuk semula secara Anonymous
-                initializeAppAndAuth();
+                
+                // Panggilan onAuthStateChanged akan menguruskan paparan 'auth'
             } catch (e) {
                 console.error("Ralat Log Keluar:", e);
                 showMessage('Ralat', 'Gagal log keluar. Sila cuba lagi.', 'text-red-700');
