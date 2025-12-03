@@ -246,7 +246,8 @@
                 app = initializeApp(firebaseConfig);
                 db = getFirestore(app);
                 auth = getAuth(app);
-                setLogLevel('debug'); // Penting untuk debugging Firebase
+                // Penting untuk debugging Firebase
+                setLogLevel('debug'); 
 
                 // Gunakan onAuthStateChanged untuk menguruskan state log masuk
                 onAuthStateChanged(auth, (user) => {
@@ -254,14 +255,9 @@
 
                     if (user) {
                         userId = user.uid;
-                        // HANYA tunjukkan ID jika BUKAN anonymous (untuk aplikasi ini)
-                        if (user.isAnonymous) {
-                             document.getElementById('user-display').textContent = `Pengguna Anonymous`;
-                        } else {
-                            // Tunjukkan E-mel yang log masuk
-                            document.getElementById('user-display').textContent = `ID Pengguna: ${user.email}`;
-                        }
+                        console.log("Auth Success: User ID:", userId); // Debugging line
                         
+                        document.getElementById('user-display').textContent = `ID Pengguna: ${user.email}`;
                         document.getElementById('logout-button').classList.remove('hidden');
                         renderView('panitia-dashboard');
                     } else {
@@ -333,6 +329,7 @@
                     await createUserWithEmailAndPassword(auth, email, password);
                     showMessage('Daftar Berjaya', 'Akaun anda telah dibuat. Sila Log Masuk.', 'text-green-700');
                     isLoginMode = true; // Tukar kepada mod log masuk selepas pendaftaran
+                    renderAuthView(); // Render semula borang
                 }
             } catch (error) {
                 console.error("Ralat Pengesahan:", error);
@@ -487,7 +484,8 @@
                 displayContentList(items.sort((a, b) => new Date(b.date) - new Date(a.date))); // Sort local
             }, (error) => {
                 console.error("Ralat mendengar data Firestore:", error);
-                showMessage('Ralat Data', `Gagal memuatkan data: ${error.message}`, 'text-red-700');
+                // Ralat ini kemungkinan besar disebabkan oleh PERMISSION
+                showMessage('Ralat Akses Data', `Gagal memuatkan data. Sila sahkan anda telah mengemas kini Peraturan Keselamatan Firebase: ${error.message}`, 'text-red-700');
             });
         }
 
@@ -582,7 +580,7 @@
                 title: title,
                 date: date,
                 content: content,
-                authorId: userId,
+                authorId: userId, // Pastikan authorId disimpan
                 timestamp: new Date().toISOString()
             };
 
