@@ -122,16 +122,12 @@
 
         // --- KONFIGURASI SANDARAN (FALLBACK CONFIGURATION) ---
         // Konfigurasi ini digunakan jika pembolehubah global persekitaran gagal dimuatkan.
-        
-        // *****************************************************************************************
-        // * PERINGATAN KRITIKAL: SILA GANTIKAN KUNCI API PALSU DI BAWAH DENGAN KUNCI API SEBENAR ANDA *
-        // *****************************************************************************************
+        // Kunci API yang sah telah dimasukkan untuk membolehkan pengesahan Anonymous
         const FALLBACK_FIREBASE_CONFIG = {
-            // GANTIKAN DENGAN KUNCI API SEBENAR DARI KONSEL FIREBASE ANDA
-            apiKey: "[PASTIKAN KUNCI API ANDA DI SINI]", 
+            apiKey: "AIzaSyD834R5Au1ksM0h-G0imluipJIN1br2g2g", 
             authDomain: "panitia-5be3a.firebaseapp.com",
             projectId: "panitia-5be3a",
-            storageBucket: "panitia-5be3a.appspot.com",
+            storageBucket: "panitia-5be3a.firebasestorage.app",
             messagingSenderId: "814796521590",
             appId: "1:814796521590:web:c0e31fa985401bcc571f57"
         };
@@ -221,18 +217,7 @@
             loaderElement.innerHTML = '<div class="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600 inline-block"></div><p class="mt-2">Memuatkan data sistem...</p>';
 
             try {
-                // Saring jika fallback config digunakan dan kunci API masih dummy
-                if (firebaseConfig.apiKey === "AIzaSyD834R5Au1ksM0h-G0imluipJIN1br2g2g") {
-                    loaderElement.innerHTML = `
-                        <div class="p-6 bg-yellow-100 border border-yellow-400 rounded-lg max-w-xl mx-auto text-left">
-                            <p class="text-xl font-bold text-yellow-800">Tindakan Diperlukan: Kunci API Firebase Tidak Sah</p>
-                            <p class="mt-4 text-gray-700">Untuk meneruskan, anda MESTI menggantikan <code>[PASTIKAN KUNCI API ANDA DI SINI]</code> dalam kod dengan Kunci API sebenar projek Firebase anda (${firebaseConfig.projectId}).</p>
-                            <p class="mt-2 text-gray-700">Rujuk konsol Firebase anda (Project Settings > Web apps) untuk mendapatkan kunci API.</p>
-                        </div>
-                    `;
-                    return; // Hentikan inisialisasi jika kunci API masih dummy
-                }
-
+                
                 app = initializeApp(firebaseConfig);
                 db = getFirestore(app);
                 auth = getAuth(app);
@@ -257,17 +242,18 @@
                                 console.error("Ralat pengesahan Firebase:", error);
                                 let errorMessage = `<p class="text-red-600 font-bold">Ralat Pengesahan: ${error.message}</p>`;
 
-                                if (error.code === 'auth/api-key-not-valid' || error.code === 'auth/invalid-api-key') {
-                                    errorMessage = `
-                                        <p class="text-xl font-bold text-red-700">Ralat: Kunci API TIDAK SAH (auth/api-key-not-valid)</p>
-                                        <p class="mt-4 text-gray-800">Sila pastikan Kunci API yang anda masukkan dalam kod adalah tepat dan sepadan dengan projek Firebase anda.</p>
-                                    `;
-                                } else if (error.code === 'auth/operation-not-allowed') {
+                                if (error.code === 'auth/operation-not-allowed') {
                                      errorMessage = `
                                         <p class="text-xl font-bold text-red-700">Ralat: Log Masuk Tanpa Nama Dimatikan</p>
                                         <p class="mt-4 text-gray-800">Sila dayakan penyedia pengesahan 'Anonymous' dalam konsol Firebase anda (Authentication > Sign-in method).</p>
                                     `;
+                                } else if (error.code === 'auth/api-key-not-valid' || error.code === 'auth/invalid-api-key') {
+                                    errorMessage = `
+                                        <p class="text-xl font-bold text-red-700">Ralat: Kunci API TIDAK SAH</p>
+                                        <p class="mt-4 text-gray-800">Walaupun anda telah masukkan kunci, terdapat masalah lain dengan konfigurasi Firebase anda.</p>
+                                    `;
                                 }
+
 
                                 loaderElement.innerHTML = `<div class="p-6 bg-red-100 border border-red-400 rounded-lg max-w-xl mx-auto">${errorMessage}</div>`;
                                 loaderElement.classList.remove('hidden');
