@@ -295,11 +295,11 @@
                         ${isLoginMode ? 'Log Masuk' : 'Daftar Sekarang'}
                     </button>
                 </form>
-                <div class="mt-6 text-center">
-                    <button type="button" onclick="toggleAuthMode()" class="text-sm text-indigo-600 hover:text-indigo-800 underline">
-                        ${isLoginMode ? 'Sudah ada akaun? Klik untuk Log Masuk'}
-                    </button>
-                </div>
+<div class="mt-6 text-center">
+    <button type="button" onclick="toggleAuthMode()" class="text-sm text-indigo-600 hover:text-indigo-800 underline">
+        ${isLoginMode ? 'Belum mendaftar? Klik untuk Daftar' : 'Sudah ada akaun? Klik untuk Log Masuk'}
+    </button>
+</div>
             `;
             
             document.getElementById('auth-form').onsubmit = handleAuth;
