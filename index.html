@@ -7,7 +7,6 @@
     <!-- Tailwind CSS CDN for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Custom styles for better aesthetics and focus */
         body {
             font-family: 'Inter', sans-serif;
             background-color: #f7f9fb;
@@ -27,10 +26,9 @@
             background-color: #e5e7eb;
             box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
         }
-        /* Style for required text fields */
         .required-text::after {
             content: " *";
-            color: #ef4444; /* Red color */
+            color: #ef4444;
         }
         .auth-container {
             max-width: 420px;
@@ -38,7 +36,6 @@
     </style>
 </head>
 <body>
-
     <div id="app-container" class="min-h-screen flex flex-col">
         <!-- Header -->
         <header id="app-header" class="bg-indigo-600 shadow-md p-4 text-white flex justify-between items-center hidden">
@@ -50,24 +47,16 @@
                 </button>
             </div>
         </header>
-
         <!-- Main Content Area -->
         <main class="flex-grow p-6 flex justify-center items-start">
             <div id="loader" class="text-center mt-20 text-gray-600">
                 <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600 inline-block"></div>
                 <p class="mt-2">Memuatkan data sistem...</p>
             </div>
-
-            <!-- Auth View (Log Masuk / Daftar) -->
-            <div id="auth-view" class="auth-container bg-white p-8 rounded-xl shadow-2xl mt-20 hidden w-full">
-                <!-- Auth Form will be injected here -->
-            </div>
-
-            <!-- All dynamic content will be rendered here -->
+            <div id="auth-view" class="auth-container bg-white p-8 rounded-xl shadow-2xl mt-20 hidden w-full"></div>
             <div id="content-view" class="hidden w-full"></div>
         </main>
-
-        <!-- Modals for Add/Edit Content and Messages -->
+        <!-- Modals -->
         <div id="modal-container">
             <!-- Modal Tambah/Edit Item -->
             <div id="crud-modal" class="fixed inset-0 bg-gray-600 bg-opacity-75 hidden items-center justify-center z-50 p-4" onclick="closeModal('crud-modal')">
@@ -84,9 +73,13 @@
                             <input type="date" id="item-date" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border">
                         </div>
                         <div class="mb-4">
-                            <label for="item-content" class="block text-sm font-medium text-gray-700">Penerangan / Pautan (Link)</label>
-                            <textarea id="item-content" rows="3" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border"></textarea>
-                            <p class="text-xs text-gray-500 mt-1">Jika ini adalah fail muat naik (seperti Carta Organisasi), masukkan pautan Google Drive/SharePoint di sini.</p>
+                            <label for="item-content" class="block text-sm font-medium text-gray-700">Penerangan (jika tiada fail)</label>
+                            <textarea id="item-content" rows="2" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border"></textarea>
+                        </div>
+                        <div class="mb-4">
+                            <label for="item-file" class="block text-sm font-medium text-gray-700">Muat Naik Fail (Opsional)</label>
+                            <input type="file" id="item-file" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border">
+                            <p class="text-xs text-gray-500 mt-1">Fail akan disimpan terus dalam sistem ini.</p>
                         </div>
                         <div class="flex justify-end space-x-3">
                             <button type="button" onclick="closeModal('crud-modal')" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition duration-150">Batal</button>
@@ -95,8 +88,7 @@
                     </form>
                 </div>
             </div>
-
-            <!-- Modal Pengesahan (Confirmation) -->
+            <!-- Modal Pengesahan -->
             <div id="confirm-modal" class="fixed inset-0 bg-gray-600 bg-opacity-75 hidden items-center justify-center z-50 p-4" onclick="closeModal('confirm-modal')">
                 <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm mx-auto transform transition-all" onclick="event.stopPropagation()">
                     <h3 class="text-lg font-bold mb-4 text-red-700">Pengesahan Tindakan</h3>
@@ -107,8 +99,7 @@
                     </div>
                 </div>
             </div>
-
-            <!-- Modal Mesej Ralat/Info -->
+            <!-- Modal Mesej -->
             <div id="message-modal" class="fixed inset-0 bg-gray-600 bg-opacity-75 hidden items-center justify-center z-50 p-4" onclick="closeModal('message-modal')">
                 <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm mx-auto transform transition-all" onclick="event.stopPropagation()">
                     <h3 id="message-title" class="text-lg font-bold mb-4 text-green-700">Berjaya!</h3>
@@ -124,13 +115,11 @@
     <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        // Tambah import untuk signInWithEmailAndPassword dan createUserWithEmailAndPassword
         import { getAuth, onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, addDoc, onSnapshot, collection, query, where, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
         import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // --- KONFIGURASI SANDARAN (FALLBACK CONFIGURATION) ---
-        // Konfigurasi ini digunakan jika pembolehubah global persekitaran gagal dimuatkan.
         const FALLBACK_FIREBASE_CONFIG = {
             apiKey: "AIzaSyD834R5Au1ksM0h-G0imluipJIN1br2g2g", 
             authDomain: "panitia-5be3a.firebaseapp.com",
@@ -141,28 +130,22 @@
         };
         const FALLBACK_APP_ID = "panitia-5be3a";
 
-
-        // Global variables provided by the Canvas environment (with fallback)
         const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : JSON.stringify(FALLBACK_FIREBASE_CONFIG));
         const appId = typeof __app_id !== 'undefined' ? __app_id : FALLBACK_APP_ID;
         const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-        
-        // Pemboleh ubah untuk mengesan mod UI (login/register)
-        let isLoginMode = true;
 
-        // Global Firebase and App State variables
-        let app, db, auth;
+        let isLoginMode = true;
+        let app, db, auth, storage;
         let userId = null;
         let currentPanitia = null;
         let currentFolder = null;
-        let activeSnapshotUnsubscribe = null; // For real-time listener cleanup
+        let activeSnapshotUnsubscribe = null;
 
         const panitiaList = [
             "Panitia Bahasa Melayu", "Panitia Bahasa Inggeris", "Panitia Matematik", "Panitia Sains",
             "Panitia Pendidikan Agama Islam", "Panitia Muzik", "Panitia Pendidikan Jasmani Kesihatan",
             "Panitia Sejarah", "Panitia Bahasa Arab", "Panitia Reka Bentuk Teknologi"
         ];
-
         const folderList = [
             { name: "Fail Induk (Pengurusan dan Perancangan)", icon: "📋" },
             { name: "Fail Sukatan Pelajaran / Kurikulum", icon: "📚" },
@@ -173,35 +156,26 @@
             { name: "Fail Penyemakan Buku Latihan Murid", icon: "🖍️" }
         ];
 
-        // Path ke koleksi data awam (public data)
         const getCollectionPath = () => `/artifacts/${appId}/public/data/panitia_items`;
 
-
-        // Fungsi untuk menguruskan paparan halaman (sistem routing asas)
         window.renderView = function(viewName) {
             const contentView = document.getElementById('content-view');
             const authView = document.getElementById('auth-view');
             const appHeader = document.getElementById('app-header');
-            
-            // Sembunyikan semua paparan kecuali yang aktif
             contentView.classList.add('hidden');
             authView.classList.add('hidden');
-            appHeader.classList.add('hidden'); // Sembunyikan header secara lalai
-
-            // Hentikan listener onSnapshot yang aktif jika ada
+            appHeader.classList.add('hidden');
             if (activeSnapshotUnsubscribe) {
                 activeSnapshotUnsubscribe();
                 activeSnapshotUnsubscribe = null;
             }
-            
-            // Tentukan paparan yang aktif
             switch (viewName) {
                 case 'auth':
                     authView.classList.remove('hidden');
                     renderAuthView();
                     break;
                 case 'panitia-dashboard':
-                    appHeader.classList.remove('hidden'); // Tunjukkan header setelah log masuk
+                    appHeader.classList.remove('hidden');
                     contentView.classList.remove('hidden');
                     renderPanitiaDashboard();
                     break;
@@ -220,8 +194,6 @@
             }
         }
 
-        // --- FUNGSI UTILITY UI ---
-
         window.closeModal = function(modalId) {
             document.getElementById(modalId).classList.add('hidden');
             document.getElementById(modalId).classList.remove('flex');
@@ -236,38 +208,29 @@
             modal.classList.add('flex');
         }
 
-        // --- VIEW 1: AUTHENTICATION (Initial Check) ---
         async function initializeAppAndAuth() {
             const loaderElement = document.getElementById('loader');
             loaderElement.innerHTML = '<div class="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600 inline-block"></div><p class="mt-2">Memuatkan data sistem...</p>';
             loaderElement.classList.remove('hidden');
-
             try {
                 app = initializeApp(firebaseConfig);
                 db = getFirestore(app);
                 auth = getAuth(app);
-                // Penting untuk debugging Firebase
-                setLogLevel('debug'); 
-
-                // Gunakan onAuthStateChanged untuk menguruskan state log masuk
+                storage = getStorage(app);
+                setLogLevel('debug');
                 onAuthStateChanged(auth, (user) => {
                     document.getElementById('loader').classList.add('hidden');
-
                     if (user) {
                         userId = user.uid;
-                        console.log("Auth Success: User ID:", userId); // Debugging line
-                        
                         document.getElementById('user-display').textContent = `ID Pengguna: ${user.email}`;
                         document.getElementById('logout-button').classList.remove('hidden');
                         renderView('panitia-dashboard');
                     } else {
-                        // Jika tiada pengguna, tunjukkan paparan log masuk
                         userId = null;
                         document.getElementById('logout-button').classList.add('hidden');
                         renderView('auth');
                     }
                 });
-
             } catch (error) {
                 console.error("Ralat inisialisasi aplikasi:", error);
                 const errorMessage = `<p class="text-red-600 font-bold">Gagal memulakan aplikasi: ${error.message}</p>`;
@@ -275,8 +238,7 @@
                 loaderElement.classList.remove('hidden');
             }
         }
-        
-        // --- VIEW 1B: AUTHENTICATION FORM (Log Masuk / Daftar) ---
+
         function renderAuthView() {
             const authView = document.getElementById('auth-view');
             authView.innerHTML = `
@@ -295,16 +257,15 @@
                         ${isLoginMode ? 'Log Masuk' : 'Daftar Sekarang'}
                     </button>
                 </form>
-<div class="mt-6 text-center">
-    <button type="button" onclick="toggleAuthMode()" class="text-sm text-indigo-600 hover:text-indigo-800 underline">
-        ${isLoginMode ? 'Belum mendaftar? Klik untuk Daftar' : 'Sudah ada akaun? Klik untuk Log Masuk'}
-    </button>
-</div>
+                <div class="mt-6 text-center">
+                    <button type="button" onclick="toggleAuthMode()" class="text-sm text-indigo-600 hover:text-indigo-800 underline">
+                        ${isLoginMode ? 'Belum mendaftar? Klik untuk Daftar' : 'Sudah ada akaun? Klik untuk Log Masuk'}
+                    </button>
+                </div>
             `;
-            
             document.getElementById('auth-form').onsubmit = handleAuth;
         }
-        
+
         window.toggleAuthMode = function() {
             isLoginMode = !isLoginMode;
             renderAuthView();
@@ -315,25 +276,20 @@
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
             const errorMessageElement = document.getElementById('auth-error-message');
-            
             errorMessageElement.classList.add('hidden');
             document.getElementById('loader').classList.remove('hidden');
-
             try {
                 if (isLoginMode) {
-                    // LOG MASUK
                     await signInWithEmailAndPassword(auth, email, password);
                     showMessage('Log Masuk Berjaya', 'Selamat datang ke SPPD!', 'text-green-700');
                 } else {
-                    // DAFTAR
                     await createUserWithEmailAndPassword(auth, email, password);
                     showMessage('Daftar Berjaya', 'Akaun anda telah dibuat. Sila Log Masuk.', 'text-green-700');
-                    isLoginMode = true; // Tukar kepada mod log masuk selepas pendaftaran
-                    renderAuthView(); // Render semula borang
+                    isLoginMode = true;
+                    renderAuthView();
                 }
             } catch (error) {
                 console.error("Ralat Pengesahan:", error);
-                
                 let userFriendlyMessage = 'Ralat tidak diketahui. Sila cuba lagi.';
                 switch(error.code) {
                     case 'auth/user-not-found':
@@ -352,25 +308,19 @@
                     default:
                         userFriendlyMessage = `Ralat: ${error.message}`;
                 }
-                
                 errorMessageElement.textContent = userFriendlyMessage;
                 errorMessageElement.classList.remove('hidden');
                 document.getElementById('loader').classList.add('hidden');
             }
         }
 
-
-        // --- VIEW 2: PANITIA DASHBOARD (Pemilihan Panitia) ---
         function renderPanitiaDashboard() {
             const contentView = document.getElementById('content-view');
             contentView.innerHTML = `
                 <h2 class="text-3xl font-extrabold text-gray-800 mb-6 border-b pb-2">Pilih Panitia Mata Pelajaran</h2>
-                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6" id="panitia-grid">
-                    <!-- Panitia tiles will be inserted here -->
-                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6" id="panitia-grid"></div>
             `;
             const panitiaGrid = document.getElementById('panitia-grid');
-
             panitiaList.forEach(panitiaName => {
                 const card = document.createElement('div');
                 card.className = 'panitia-item bg-white p-6 rounded-xl shadow-lg border border-gray-200 flex flex-col items-center text-center';
@@ -389,7 +339,6 @@
             renderView('panitia-view');
         }
 
-        // --- VIEW 3: PANITIA FOLDER VIEW (Pemilihan Fail) ---
         function renderPanitiaFolderView() {
             const contentView = document.getElementById('content-view');
             contentView.innerHTML = `
@@ -398,12 +347,9 @@
                 </div>
                 <h2 class="text-3xl font-extrabold text-gray-800 mb-2">${currentPanitia}</h2>
                 <h3 class="text-2xl font-semibold text-indigo-700 mb-6 border-b pb-2">${currentFolder ? currentFolder : 'Pengurusan Fail'}</h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="folder-grid">
-                    <!-- Folder tiles will be inserted here -->
-                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="folder-grid"></div>
             `;
             const folderGrid = document.getElementById('folder-grid');
-
             folderList.forEach((folder, index) => {
                 const card = document.createElement('div');
                 card.className = 'panitia-item bg-white p-6 rounded-xl shadow-lg border border-indigo-100 flex flex-col justify-between';
@@ -424,7 +370,6 @@
             renderView('folder-content');
         }
 
-        // --- VIEW 4: FOLDER CONTENT (CRUD Data) ---
         function renderFolderContent() {
             const contentView = document.getElementById('content-view');
             contentView.innerHTML = `
@@ -439,91 +384,63 @@
                         <span>Tambah Item Baru</span>
                     </button>
                 </div>
-
                 <div id="content-list-container" class="bg-white p-4 rounded-xl shadow-lg">
                     <p class="text-center text-gray-500">Memuatkan data...</p>
-                    <ul id="content-list" class="divide-y divide-gray-200">
-                        <!-- Content items will be listed here (via onSnapshot) -->
-                    </ul>
+                    <ul id="content-list" class="divide-y divide-gray-200"></ul>
                 </div>
             `;
-
-            // Mulakan listener Firebase onSnapshot
             fetchContentRealtime();
         }
 
-        // --- FUNGSI CRUD FIREBASE ---
-
         function fetchContentRealtime() {
-            // Pastikan auth telah siap sebelum membuat query
             if (!userId) {
-                console.error("Pengguna belum disahkan. Membatalkan fetchContentRealtime.");
                 document.getElementById('content-list').innerHTML = `<li class="p-4 text-center text-red-500">Ralat: Pengguna belum disahkan.</li>`;
                 return;
             }
-
             const collectionRef = collection(db, getCollectionPath());
-            const q = query(
-                collectionRef,
-                where("panitia", "==", currentPanitia),
-                where("folder", "==", currentFolder)
-                // orderBy("date", "desc") -- Dielakkan untuk mengelakkan keperluan indeks
-            );
-
-            // Jika ada listener aktif, hentikannya dahulu
-            if (activeSnapshotUnsubscribe) {
-                activeSnapshotUnsubscribe();
-            }
-
-            // Set listener baru
+            const q = query(collectionRef, where("panitia", "==", currentPanitia), where("folder", "==", currentFolder));
+            if (activeSnapshotUnsubscribe) activeSnapshotUnsubscribe();
             activeSnapshotUnsubscribe = onSnapshot(q, (snapshot) => {
                 const items = [];
                 snapshot.forEach((doc) => {
                     items.push({ id: doc.id, ...doc.data() });
                 });
-                displayContentList(items.sort((a, b) => new Date(b.date) - new Date(a.date))); // Sort local
+                displayContentList(items.sort((a, b) => new Date(b.date) - new Date(a.date)));
             }, (error) => {
-                console.error("Ralat mendengar data Firestore:", error);
-                // Ralat ini kemungkinan besar disebabkan oleh PERMISSION
-                showMessage('Ralat Akses Data', `Gagal memuatkan data. Sila sahkan anda telah mengemas kini Peraturan Keselamatan Firebase: ${error.message}`, 'text-red-700');
+                console.error("Ralat Firestore:", error);
+                showMessage('Ralat Akses Data', `Gagal memuatkan data. Sila sahkan peraturan keselamatan Firebase: ${error.message}`, 'text-red-700');
             });
         }
 
         function displayContentList(items) {
             const listElement = document.getElementById('content-list');
-            listElement.innerHTML = ''; // Clear existing list
-
+            listElement.innerHTML = '';
             if (items.length === 0) {
                 listElement.innerHTML = `<li class="p-4 text-center text-gray-500">Tiada item di dalam fail ini. Sila tambah dokumen pertama anda.</li>`;
                 return;
             }
-
             items.forEach(item => {
-                // Pastikan item.content wujud dan bukan null
                 const contentText = item.content || 'Tiada penerangan/pautan.';
-                // Escape single quotes for use in function call
-                // Tambah semakan untuk memastikan semua nilai wujud sebelum escape
-                const itemTitle = item.title || 'Tiada Tajuk';
-                const itemDate = item.date || 'Tarikh Tidak Diketahui';
-                const escapedContent = contentText.replace(/'/g, "\\'"); 
-
                 const listItem = document.createElement('li');
                 listItem.className = 'p-4 flex justify-between items-center hover:bg-gray-50 transition duration-150 rounded-lg';
+                let contentDisplay = '';
+                if (contentText.startsWith('http')) {
+                    contentDisplay = `<a href="${contentText}" target="_blank" class="text-sm text-blue-600 hover:text-blue-800 underline block truncate max-w-lg">Muat Turun Fail</a>`;
+                } else {
+                    contentDisplay = `<p class="text-sm text-gray-600 truncate max-w-lg">${contentText}</p>`;
+                }
                 listItem.innerHTML = `
                     <div class="flex-grow">
-                        <p class="text-lg font-semibold text-gray-900">${itemTitle}</p>
-                        <p class="text-sm text-indigo-600">Bertarikh: ${itemDate}</p>
-                        ${contentText.startsWith('http') ? 
-                            `<a href="${contentText}" target="_blank" class="text-sm text-blue-600 hover:text-blue-800 underline block truncate max-w-lg">Pautan Dokumen (Klik)</a>` :
-                            `<p class="text-sm text-gray-600 truncate max-w-lg">${contentText}</p>`
-                        }
+                        <p class="text-lg font-semibold text-gray-900">${item.title || 'Tiada Tajuk'}</p>
+                        <p class="text-sm text-indigo-600">Bertarikh: ${item.date || 'Tarikh Tidak Diketahui'}</p>
+                        ${contentDisplay}
                     </div>
                     <div class="flex space-x-2">
-                        <button onclick="openCrudModal('edit', '${item.id}', '${itemTitle.replace(/'/g, "\\'")}', '${itemDate}', '${escapedContent}')" 
+                        <button onclick="openCrudModal('edit', '${item.id}', '${(item.title || '').replace(/'/g, "\\'")}', '${item.date || ''}', '${(contentText || '').replace(/'/g, "\\'")}')"
                                 class="text-indigo-600 hover:text-indigo-800 p-2 rounded-full hover:bg-indigo-100 transition duration-150" title="Edit">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-6-1l-9-9V7m0 0h4m-4 0v4m-2 2L19 5l-2-2m-2 2l4 4"></path></svg>
                         </button>
-                        <button onclick="promptDeleteConfirmation('${item.id}', '${itemTitle}')" 
+                        <button onclick="promptDeleteConfirmation('${item.id}', '${(item.title || '').replace(/'/g, "\\'")}')"
                                 class="text-red-600 hover:text-red-800 p-2 rounded-full hover:bg-red-100 transition duration-150" title="Padam">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                         </button>
@@ -540,18 +457,18 @@
             const itemTitle = document.getElementById('item-title');
             const itemDate = document.getElementById('item-date');
             const itemContent = document.getElementById('item-content');
+            const itemFile = document.getElementById('item-file');
             const saveButton = document.getElementById('save-button');
 
             itemId.value = id;
             itemTitle.value = title;
             itemDate.value = date;
-            // Unescape the content for the textarea
             itemContent.value = content.replace(/\\'/g, "'");
+            itemFile.value = ''; // Reset file input
 
             if (mode === 'add') {
                 modalTitle.textContent = `Tambah Item Baru ke ${currentFolder}`;
                 saveButton.textContent = 'Tambah';
-                // Reset form fields for a new entry
                 itemTitle.value = '';
                 itemDate.value = new Date().toISOString().substring(0, 10);
                 itemContent.value = '';
@@ -559,7 +476,6 @@
                 modalTitle.textContent = `Edit Item: ${title}`;
                 saveButton.textContent = 'Simpan Perubahan';
             }
-
             modal.classList.remove('hidden');
             modal.classList.add('flex');
         }
@@ -570,32 +486,48 @@
             const title = document.getElementById('item-title').value;
             const date = document.getElementById('item-date').value;
             const content = document.getElementById('item-content').value;
+            const fileInput = document.getElementById('item-file');
+            const file = fileInput.files[0];
 
             closeModal('crud-modal');
             document.getElementById('loader').classList.remove('hidden');
+
+            let finalContent = content; // Default to text
+
+            if (file) {
+                try {
+                    const fileName = `${Date.now()}_${file.name}`;
+                    const storageRef = ref(storage, `uploads/${appId}/${currentPanitia}/${fileName}`);
+                    await uploadBytes(storageRef, file);
+                    finalContent = await getDownloadURL(storageRef);
+                } catch (uploadError) {
+                    console.error("Upload error:", uploadError);
+                    showMessage('Ralat Muat Naik', `Gagal memuat naik fail: ${uploadError.message}`, 'text-red-700');
+                    document.getElementById('loader').classList.add('hidden');
+                    return;
+                }
+            }
 
             const itemData = {
                 panitia: currentPanitia,
                 folder: currentFolder,
                 title: title,
                 date: date,
-                content: content,
-                authorId: userId, // Pastikan authorId disimpan
+                content: finalContent,
+                authorId: userId,
                 timestamp: new Date().toISOString()
             };
 
             try {
                 if (id) {
-                    // EDIT (Update)
                     await updateDoc(doc(db, getCollectionPath(), id), itemData);
                     showMessage('Berjaya', 'Item telah berjaya dikemaskini.');
                 } else {
-                    // ADD (Create)
                     await addDoc(collection(db, getCollectionPath()), itemData);
                     showMessage('Berjaya', 'Item baru telah berjaya ditambah.');
                 }
             } catch (e) {
-                console.error("Ralat CRUD:", e);
+                console.error("CRUD error:", e);
                 showMessage('Ralat', `Gagal menyimpan data: ${e.message}`, 'text-red-700');
             } finally {
                 document.getElementById('loader').classList.add('hidden');
@@ -604,66 +536,46 @@
 
         window.promptDeleteConfirmation = function(id, title) {
             const modal = document.getElementById('confirm-modal');
-            // Ensure title is unescaped for display purposes
             const unescapedTitle = title.replace(/\\'/g, "'");
             document.getElementById('confirm-message').innerHTML = `Adakah anda pasti mahu **PADAM** item:<br><span class="font-bold text-red-600">${unescapedTitle}</span>? Tindakan ini tidak boleh diundur.`;
-            const confirmButton = document.getElementById('confirm-action-button');
-
-            // Tetapkan fungsi yang akan dipanggil apabila 'Sah' ditekan
-            confirmButton.onclick = () => deleteItem(id);
-
+            document.getElementById('confirm-action-button').onclick = () => deleteItem(id);
             modal.classList.remove('hidden');
             modal.classList.add('flex');
         }
 
         window.cancelConfirmation = function() {
             closeModal('confirm-modal');
-            document.getElementById('confirm-action-button').onclick = null; // Clear the action
+            document.getElementById('confirm-action-button').onclick = null;
         }
 
         async function deleteItem(id) {
             closeModal('confirm-modal');
             document.getElementById('loader').classList.remove('hidden');
-
             try {
                 await deleteDoc(doc(db, getCollectionPath(), id));
                 showMessage('Berjaya', 'Item telah berjaya dipadam.');
             } catch (e) {
-                console.error("Ralat Padam:", e);
+                console.error("Delete error:", e);
                 showMessage('Ralat', `Gagal memadam item: ${e.message}`, 'text-red-700');
             } finally {
                 document.getElementById('loader').classList.add('hidden');
             }
         }
 
-        // --- FUNGSI LOGOUT ---
         document.getElementById('logout-button').onclick = async function() {
             try {
-                // Hentikan listener onSnapshot yang aktif jika ada
                 if (activeSnapshotUnsubscribe) {
                     activeSnapshotUnsubscribe();
                     activeSnapshotUnsubscribe = null;
                 }
-                
-                // 1. Log keluar secara rasmi
                 await signOut(auth);
-
-                // 2. Clear state and UI feedback for visual confirmation
-                currentPanitia = null;
-                currentFolder = null;
-                document.getElementById('user-display').textContent = '';
-                
-                // Panggilan onAuthStateChanged akan menguruskan paparan 'auth'
             } catch (e) {
-                console.error("Ralat Log Keluar:", e);
+                console.error("Logout error:", e);
                 showMessage('Ralat', 'Gagal log keluar. Sila cuba lagi.', 'text-red-700');
             }
         }
 
-        // Mulakan aplikasi
         initializeAppAndAuth();
-
     </script>
 </body>
 </html>
-
