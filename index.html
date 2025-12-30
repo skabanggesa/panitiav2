@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SPPD: Pengurusan Panitia Digital SK Abang Gesa</title>
+    <title>SPPD: Pengurusan Panitia Digital SKAG</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Cinzel:wght@700&display=swap');
@@ -31,7 +31,7 @@
                 </div>
                 <div>
                     <h1 class="text-lg md:text-xl font-bold font-cinzel text-yellow-400 leading-none">SPPD</h1>
-                    <p class="text-[10px] md:text-xs tracking-tighter opacity-80 uppercase font-bold">Fail Panitia Digital SK Abang Gesa</p>
+                    <p class="text-[10px] md:text-xs tracking-tighter opacity-80 uppercase font-bold">Sistem Pengurusan Panitia Digital SK Abang Gesa</p>
                 </div>
             </div>
 
@@ -142,7 +142,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
         import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
-        import { getFirestore, doc, getDoc, collection, addDoc, query, where, onSnapshot, deleteDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, collection, addDoc, query, where, getDocs, onSnapshot, deleteDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
         import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-storage.js";
 
         const firebaseConfig = {
@@ -174,26 +174,35 @@
             { name: "Laporan Aktiviti", icon: "🚀" }, { name: "Pencerapan Guru", icon: "👀" }
         ];
 
-        // 1. PENGURUSAN SESI & PROFIL PENGGUNA
+        // 1. FUNGSI PENGAMBILAN PROFIL GURU (SMART SEARCH)
+        async function fetchTeacherProfile(user) {
+            try {
+                // Cuba cari menggunakan UID sebagai ID Dokumen
+                const docRef = doc(db, "pengguna", user.uid);
+                const docSnap = await getDoc(docRef);
+                
+                if (docSnap.exists()) {
+                    return docSnap.data().nama_penuh || user.email.split('@')[0];
+                }
+
+                // Jika gagal, cari menggunakan QUERY emel (Sangat berguna jika ID dokumen bukan UID)
+                const q = query(collection(db, "pengguna"), where("emel", "==", user.email));
+                const querySnapshot = await getDocs(q);
+                
+                if (!querySnapshot.empty) {
+                    return querySnapshot.docs[0].data().nama_penuh;
+                }
+            } catch (e) {
+                console.error("Ralat ambil profil:", e);
+            }
+            return user.email.split('@')[0]; // Fallback terakhir
+        }
+
         onAuthStateChanged(auth, async (user) => {
             const loader = document.getElementById('main-loader');
             if (user) {
                 currentUser = user;
-                try {
-                    // Mengambil data dari koleksi 'pengguna' menggunakan UID
-                    const docRef = doc(db, "pengguna", user.uid);
-                    const docSnap = await getDoc(docRef);
-                    
-                    if (docSnap.exists()) {
-                        // Menggunakan medan 'nama_penuh' mengikut tangkap layar firestore anda
-                        currentNama = docSnap.data().nama_penuh || user.email.split('@')[0];
-                    } else {
-                        currentNama = user.email.split('@')[0];
-                    }
-                } catch (e) { 
-                    console.error("Gagal mengambil profil:", e);
-                    currentNama = user.email; 
-                }
+                currentNama = await fetchTeacherProfile(user);
 
                 document.getElementById('user-display').textContent = currentNama;
                 document.getElementById('auth-view').classList.add('hidden');
@@ -343,7 +352,7 @@
                     content: document.getElementById('item-content').value,
                     panitia: currentPanitia,
                     folder: currentFolder,
-                    authorNama: currentNama,
+                    authorNama: currentNama, // Nama penuh guru direkodkan di sini
                     updatedAt: serverTimestamp()
                 };
 
@@ -368,4 +377,3 @@
     </script>
 </body>
 </html>
-
