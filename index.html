@@ -3,579 +3,355 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistem Pengurusan Fail Panitia Digital</title>
-    <!-- Tailwind CSS CDN for styling -->
+    <title>SPPD: Pengurusan Panitia Digital SKAG</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f7f9fb;
-        }
-        .card {
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            transition: transform 0.2s;
-        }
-        .card:hover {
-            transform: translateY(-2px);
-        }
-        .panitia-item {
-            cursor: pointer;
-            transition: background-color 0.2s, box-shadow 0.2s;
-        }
-        .panitia-item:hover {
-            background-color: #e5e7eb;
-            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
-        }
-        .required-text::after {
-            content: " *";
-            color: #ef4444;
-        }
-        .auth-container {
-            max-width: 420px;
-        }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Cinzel:wght@700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f7f9fb; }
+        .font-cinzel { font-family: 'Cinzel', serif; }
+        .panitia-item { cursor: pointer; transition: all 0.2s ease-in-out; }
+        .panitia-item:hover { transform: translateY(-3px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+        .required-text::after { content: " *"; color: #ef4444; }
+        .loader-spinner { border: 4px solid #f3f3f3; border-top: 4px solid #3730a3; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
     <div id="app-container" class="min-h-screen flex flex-col">
-        <!-- Header -->
-        <header id="app-header" class="bg-indigo-600 shadow-md p-4 text-white flex justify-between items-center hidden">
-            <h1 class="text-2xl font-bold">SPPD: Sistem Panitia Digital</h1>
+        
+        <header id="app-header" class="bg-indigo-900 shadow-xl p-4 text-white flex justify-between items-center hidden no-print">
+            <div class="flex items-center space-x-3">
+                <div class="bg-white p-1 rounded">
+                    <img src="sppd.png" class="h-8 md:h-12" alt="SPPD LOGO" onerror="this.src='https://via.placeholder.com/50?text=SPPD'">
+                </div>
+                <div>
+                    <h1 class="text-lg md:text-xl font-bold font-cinzel text-yellow-400 leading-none">SPPD</h1>
+                    <p class="text-[10px] md:text-xs tracking-tighter opacity-80 uppercase">Panitia Digital SKAG</p>
+                </div>
+            </div>
+
             <div class="flex items-center space-x-4">
-                <p id="user-display" class="text-sm italic"></p>
-                <button id="logout-button" class="bg-red-500 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-full shadow-lg transition duration-300">
-                    Log Keluar
-                </button>
+                <div class="text-right hidden sm:block">
+                    <p class="text-[9px] text-indigo-300 uppercase font-bold leading-none">Log Masuk Sebagai:</p>
+                    <p id="user-display" class="text-xs font-semibold text-white uppercase tracking-wide">Memuatkan nama...</p>
+                </div>
+
+                <div class="h-8 w-[1px] bg-indigo-700 hidden sm:block"></div>
+
+                <div class="flex flex-col">
+                    <span class="text-[9px] text-indigo-300 font-bold">SESI:</span>
+                    <select id="sesiSelector" onchange="updateSesi(this.value)" class="bg-indigo-800 border-none rounded text-xs p-1 font-bold text-white outline-none cursor-pointer">
+                        <option value="2024_2025">2024/2025</option>
+                        <option value="2025_2026">2025/2026</option>
+                    </select>
+                </div>
+
+                <button id="logout-button" class="bg-red-600 hover:bg-red-700 px-3 py-2 rounded text-[10px] font-bold transition shadow-lg">LOG KELUAR</button>
             </div>
         </header>
-        <!-- Main Content Area -->
-        <main class="flex-grow p-6 flex justify-center items-start">
-            <div id="loader" class="text-center mt-20 text-gray-600">
-                <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600 inline-block"></div>
-                <p class="mt-2">Memuatkan data sistem...</p>
+
+        <main class="flex-grow p-4 md:p-8">
+            <div id="loader" class="flex flex-col items-center justify-center mt-32">
+                <div class="loader-spinner"></div>
+                <p class="mt-4 text-gray-500 font-medium animate-pulse">Menghubungkan ke Portal-8368...</p>
             </div>
-            <div id="auth-view" class="auth-container bg-white p-8 rounded-xl shadow-2xl mt-20 hidden w-full"></div>
-            <div id="content-view" class="hidden w-full"></div>
+
+            <div id="auth-view" class="max-w-md mx-auto bg-white p-8 rounded-2xl shadow-2xl mt-10 hidden border-t-8 border-indigo-600">
+                <div class="text-center mb-8">
+                    <img src="sppd.png" class="h-16 mx-auto mb-4" alt="SPPD">
+                    <h2 id="auth-title" class="text-2xl font-bold text-indigo-900 font-cinzel">LOG MASUK GURU</h2>
+                </div>
+                <form id="auth-form" class="space-y-5">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Emel Rasmi</label>
+                        <input type="email" id="auth-email" required class="w-full border rounded-xl p-3 outline-indigo-500 bg-gray-50">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Kata Laluan</label>
+                        <input type="password" id="auth-password" required class="w-full border rounded-xl p-3 outline-indigo-500 bg-gray-50">
+                    </div>
+                    <button type="submit" id="auth-submit-btn" class="w-full bg-indigo-600 text-white p-4 rounded-xl font-bold hover:bg-indigo-700 shadow-lg transition">LOG MASUK</button>
+                </form>
+                <div class="mt-6 text-center border-t pt-4">
+                    <button onclick="toggleAuthMode()" class="text-xs text-indigo-600 font-bold underline" id="auth-toggle-btn">Daftar Akaun Baru</button>
+                </div>
+            </div>
+
+            <div id="panitia-dashboard" class="hidden">
+                <div class="text-center mb-10">
+                    <h2 class="text-3xl font-bold text-indigo-900 font-cinzel tracking-widest uppercase">Senarai Panitia</h2>
+                    <div class="h-1 w-20 bg-yellow-400 mx-auto mt-2"></div>
+                </div>
+                <div id="panitia-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"></div>
+            </div>
+
+            <div id="folder-view" class="hidden">
+                <button onclick="showDashboard()" class="mb-6 text-indigo-600 font-bold flex items-center hover:translate-x-[-5px] transition duration-200">← KEMBALI</button>
+                <div class="bg-indigo-900 p-6 rounded-2xl shadow-lg mb-8 text-center text-white">
+                    <h2 id="current-panitia-name" class="text-3xl font-bold font-cinzel text-yellow-400 italic"></h2>
+                </div>
+                <div id="folder-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+            </div>
+
+            <div id="content-view" class="hidden">
+                <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+                    <button onclick="showFolderView()" class="text-indigo-600 font-bold">← KEMBALI KE FOLDER</button>
+                    <button onclick="openCrudModal('add')" class="bg-green-600 text-white px-8 py-3 rounded-xl font-bold shadow-xl hover:bg-green-700 transition">+ TAMBAH DOKUMEN</button>
+                </div>
+                <div class="bg-white rounded-2xl shadow-2xl border overflow-hidden">
+                    <div class="bg-indigo-50 p-4 border-b flex items-center">
+                        <span class="text-2xl mr-3" id="folder-icon-display">📁</span>
+                        <h3 id="current-folder-path" class="font-bold text-indigo-900 uppercase"></h3>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left">
+                            <thead class="bg-gray-50 border-b">
+                                <tr class="text-xs uppercase text-gray-500 font-bold">
+                                    <th class="px-6 py-4">Dokumen</th>
+                                    <th class="px-6 py-4">Tarikh & Penulis</th>
+                                    <th class="px-6 py-4 text-right">Tindakan</th>
+                                </tr>
+                            </thead>
+                            <tbody id="content-list" class="divide-y text-sm"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
         </main>
-        <!-- Modals -->
-        <div id="modal-container">
-            <!-- Modal Tambah/Edit Item -->
-            <div id="crud-modal" class="fixed inset-0 bg-gray-600 bg-opacity-75 hidden items-center justify-center z-50 p-4" onclick="closeModal('crud-modal')">
-                <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-lg mx-auto transform transition-all" onclick="event.stopPropagation()">
-                    <h2 id="modal-title" class="text-xl font-bold mb-4 text-indigo-700">Tambah Item Baru</h2>
-                    <form id="crud-form">
-                        <input type="hidden" id="item-id">
-                        <div class="mb-4">
-                            <label for="item-title" class="block text-sm font-medium text-gray-700 required-text">Tajuk Dokumen/Item</label>
-                            <input type="text" id="item-title" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border">
-                        </div>
-                        <div class="mb-4">
-                            <label for="item-date" class="block text-sm font-medium text-gray-700 required-text">Tarikh</label>
-                            <input type="date" id="item-date" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border">
-                        </div>
-                        <div class="mb-4">
-                            <label for="item-content" class="block text-sm font-medium text-gray-700">Penerangan (jika tiada fail)</label>
-                            <textarea id="item-content" rows="2" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border"></textarea>
-                        </div>
-                        <div class="mb-4">
-                            <label for="item-file" class="block text-sm font-medium text-gray-700">Muat Naik Fail (Opsional)</label>
-                            <input type="file" id="item-file" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border">
-                            <p class="text-xs text-gray-500 mt-1">Fail akan disimpan terus dalam sistem ini.</p>
-                        </div>
-                        <div class="flex justify-end space-x-3">
-                            <button type="button" onclick="closeModal('crud-modal')" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition duration-150">Batal</button>
-                            <button type="submit" id="save-button" class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition duration-150">Simpan</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-            <!-- Modal Pengesahan -->
-            <div id="confirm-modal" class="fixed inset-0 bg-gray-600 bg-opacity-75 hidden items-center justify-center z-50 p-4" onclick="closeModal('confirm-modal')">
-                <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm mx-auto transform transition-all" onclick="event.stopPropagation()">
-                    <h3 class="text-lg font-bold mb-4 text-red-700">Pengesahan Tindakan</h3>
-                    <p id="confirm-message" class="mb-6 text-gray-700">Adakah anda pasti mahu melakukan tindakan ini?</p>
-                    <div class="flex justify-end space-x-3">
-                        <button type="button" onclick="cancelConfirmation()" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition duration-150">Batal</button>
-                        <button type="button" id="confirm-action-button" class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition duration-150">Sah</button>
+
+        <div id="crud-modal" class="fixed inset-0 bg-black bg-opacity-70 hidden items-center justify-center z-50 p-4 backdrop-blur-sm">
+            <div class="bg-white rounded-3xl w-full max-w-lg p-8 shadow-2xl">
+                <h3 id="modal-title" class="text-xl font-bold text-indigo-900 mb-6 uppercase">Tambah Item</h3>
+                <form id="crud-form" class="space-y-4">
+                    <input type="hidden" id="item-id">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-600 uppercase required-text">Tajuk</label>
+                        <input type="text" id="item-title" required class="w-full border rounded-xl p-3 mt-1 bg-gray-50">
                     </div>
-                </div>
-            </div>
-            <!-- Modal Mesej -->
-            <div id="message-modal" class="fixed inset-0 bg-gray-600 bg-opacity-75 hidden items-center justify-center z-50 p-4" onclick="closeModal('message-modal')">
-                <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm mx-auto transform transition-all" onclick="event.stopPropagation()">
-                    <h3 id="message-title" class="text-lg font-bold mb-4 text-green-700">Berjaya!</h3>
-                    <p id="message-text" class="mb-6 text-gray-700">Tindakan telah selesai.</p>
-                    <div class="flex justify-end">
-                        <button type="button" onclick="closeModal('message-modal')" class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition duration-150">OK</button>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-600 uppercase required-text">Tarikh</label>
+                        <input type="date" id="item-date" required class="w-full border rounded-xl p-3 mt-1 bg-gray-50">
                     </div>
-                </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-600 uppercase">Nota</label>
+                        <textarea id="item-content" rows="2" class="w-full border rounded-xl p-3 mt-1 bg-gray-50"></textarea>
+                    </div>
+                    <div class="bg-indigo-50 p-4 rounded-2xl border-2 border-dashed border-indigo-200">
+                        <label class="block text-xs font-bold text-indigo-900 uppercase">Fail (PDF/Imej/Doc)</label>
+                        <input type="file" id="item-file" class="mt-2 text-xs w-full">
+                    </div>
+                    <div class="flex justify-end space-x-3 mt-8">
+                        <button type="button" onclick="closeModal('crud-modal')" class="px-6 py-3 font-bold text-gray-500">BATAL</button>
+                        <button type="submit" id="save-btn" class="px-8 py-3 bg-indigo-600 text-white rounded-xl font-bold shadow-lg">SIMPAN</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
 
-    <!-- Firebase SDKs -->
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, addDoc, onSnapshot, collection, query, where, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
-        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
+        import { getFirestore, doc, getDoc, collection, addDoc, query, where, onSnapshot, deleteDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-storage.js";
 
-        const FALLBACK_FIREBASE_CONFIG = {
-            apiKey: "AIzaSyD834R5Au1ksM0h-G0imluipJIN1br2g2g", 
-            authDomain: "panitia-5be3a.firebaseapp.com",
-            projectId: "panitia-5be3a",
-            storageBucket: "panitia-5be3a.firebasestorage.app",
-            messagingSenderId: "814796521590",
-            appId: "1:814796521590:web:c0e31fa985401bcc571f57"
+        const firebaseConfig = {
+            apiKey: "AIzaSyCwh99Ui4KPXgC-W-CpCg-edYnHN3aVmrk",
+            authDomain: "portal-8368.firebaseapp.com",
+            projectId: "portal-8368",
+            storageBucket: "portal-8368.firebasestorage.app",
+            messagingSenderId: "150403488308",
+            appId: "1:150403488308:web:fac9b3c52dcd9975130861"
         };
-        const FALLBACK_APP_ID = "panitia-5be3a";
 
-        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : JSON.stringify(FALLBACK_FIREBASE_CONFIG));
-        const appId = typeof __app_id !== 'undefined' ? __app_id : FALLBACK_APP_ID;
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const storage = getStorage(app);
 
+        let currentUser = null;
+        let currentNama = "";
         let isLoginMode = true;
-        let app, db, auth, storage;
-        let userId = null;
-        let currentPanitia = null;
-        let currentFolder = null;
-        let activeSnapshotUnsubscribe = null;
+        let selectedSesi = "2024_2025";
+        let currentPanitia = "";
+        let currentFolder = "";
+        let unsubTable = null;
 
-        const panitiaList = [
-            "Panitia Bahasa Melayu", "Panitia Bahasa Inggeris", "Panitia Matematik", "Panitia Sains",
-            "Panitia Pendidikan Agama Islam", "Panitia Muzik", "Panitia Pendidikan Jasmani Kesihatan",
-            "Panitia Sejarah", "Panitia Bahasa Arab", "Panitia Reka Bentuk Teknologi"
-        ];
-        const folderList = [
-            { name: "Fail Induk (Pengurusan dan Perancangan)", icon: "📋" },
-            { name: "Fail Sukatan Pelajaran / Kurikulum", icon: "📚" },
-            { name: "Fail Mesyuarat Panitia", icon: "🗓️" },
-            { name: "Fail Program Kecemerlangan (Perancangan Strategik)", icon: "🚀" },
-            { name: "Fail Peperiksaan / Pentaksiran", icon: "📝" },
-            { name: "Fail Penyeliaan / Pencerapan", icon: "👀" },
-            { name: "Fail Penyemakan Buku Latihan Murid", icon: "🖍️" }
-        ];
+        const panitiaList = ["Bahasa Melayu", "Bahasa Inggeris", "Matematik", "Sains", "Pendidikan Islam", "Sejarah", "RBT", "PJK", "Seni Visual"];
+        const folderList = [{ name: "Fail Induk", icon: "📋" }, { name: "Kurikulum & DSKP", icon: "📚" }, { name: "Minit Mesyuarat", icon: "🗓️" }, { name: "PBD & Analisis", icon: "📊" }, { name: "Laporan Aktiviti", icon: "🚀" }, { name: "Pencerapan Guru", icon: "👀" }];
 
-        const getCollectionPath = () => `/artifacts/${appId}/public/data/panitia_items`;
-
-        window.renderView = function(viewName) {
-            const contentView = document.getElementById('content-view');
-            const authView = document.getElementById('auth-view');
-            const appHeader = document.getElementById('app-header');
-            contentView.classList.add('hidden');
-            authView.classList.add('hidden');
-            appHeader.classList.add('hidden');
-            if (activeSnapshotUnsubscribe) {
-                activeSnapshotUnsubscribe();
-                activeSnapshotUnsubscribe = null;
-            }
-            switch (viewName) {
-                case 'auth':
-                    authView.classList.remove('hidden');
-                    renderAuthView();
-                    break;
-                case 'panitia-dashboard':
-                    appHeader.classList.remove('hidden');
-                    contentView.classList.remove('hidden');
-                    renderPanitiaDashboard();
-                    break;
-                case 'panitia-view':
-                    appHeader.classList.remove('hidden');
-                    contentView.classList.remove('hidden');
-                    renderPanitiaFolderView();
-                    break;
-                case 'folder-content':
-                    appHeader.classList.remove('hidden');
-                    contentView.classList.remove('hidden');
-                    renderFolderContent();
-                    break;
-                default:
-                    showMessage('Ralat', 'Paparan tidak diketahui.', 'text-red-700');
-            }
-        }
-
-        window.closeModal = function(modalId) {
-            document.getElementById(modalId).classList.add('hidden');
-            document.getElementById(modalId).classList.remove('flex');
-        }
-
-        function showMessage(title, text, colorClass = 'text-green-700') {
-            const modal = document.getElementById('message-modal');
-            document.getElementById('message-title').textContent = title;
-            document.getElementById('message-title').className = `text-lg font-bold mb-4 ${colorClass}`;
-            document.getElementById('message-text').textContent = text;
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-        }
-
-        async function initializeAppAndAuth() {
-            const loaderElement = document.getElementById('loader');
-            loaderElement.innerHTML = '<div class="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600 inline-block"></div><p class="mt-2">Memuatkan data sistem...</p>';
-            loaderElement.classList.remove('hidden');
-            try {
-                app = initializeApp(firebaseConfig);
-                db = getFirestore(app);
-                auth = getAuth(app);
-                storage = getStorage(app);
-                setLogLevel('debug');
-                onAuthStateChanged(auth, (user) => {
-                    document.getElementById('loader').classList.add('hidden');
-                    if (user) {
-                        userId = user.uid;
-                        document.getElementById('user-display').textContent = `ID Pengguna: ${user.email}`;
-                        document.getElementById('logout-button').classList.remove('hidden');
-                        renderView('panitia-dashboard');
-                    } else {
-                        userId = null;
-                        document.getElementById('logout-button').classList.add('hidden');
-                        renderView('auth');
-                    }
-                });
-            } catch (error) {
-                console.error("Ralat inisialisasi aplikasi:", error);
-                const errorMessage = `<p class="text-red-600 font-bold">Gagal memulakan aplikasi: ${error.message}</p>`;
-                loaderElement.innerHTML = `<div class="p-6 bg-red-100 border border-red-400 rounded-lg max-w-xl mx-auto">${errorMessage}</div>`;
-                loaderElement.classList.remove('hidden');
-            }
-        }
-
-        function renderAuthView() {
-            const authView = document.getElementById('auth-view');
-            authView.innerHTML = `
-                <h2 class="text-2xl font-bold mb-6 text-center text-indigo-700">${isLoginMode ? 'LOG MASUK' : 'DAFTAR PENGGUNA BARU'}</h2>
-                <form id="auth-form" class="space-y-4">
-                    <div>
-                        <label for="email" class="block text-sm font-medium text-gray-700">E-mel</label>
-                        <input type="email" id="email" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border" placeholder="contoh@sekolah.edu.my">
-                    </div>
-                    <div>
-                        <label for="password" class="block text-sm font-medium text-gray-700">Kata Laluan</label>
-                        <input type="password" id="password" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border" placeholder="Minimum 6 aksara">
-                    </div>
-                    <p id="auth-error-message" class="text-sm text-red-500 hidden"></p>
-                    <button type="submit" class="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150">
-                        ${isLoginMode ? 'Log Masuk' : 'Daftar Sekarang'}
-                    </button>
-                </form>
-                <div class="mt-6 text-center">
-                    <button type="button" onclick="toggleAuthMode()" class="text-sm text-indigo-600 hover:text-indigo-800 underline">
-                        ${isLoginMode ? 'Belum mendaftar? Klik untuk Daftar' : 'Sudah ada akaun? Klik untuk Log Masuk'}
-                    </button>
-                </div>
-            `;
-            document.getElementById('auth-form').onsubmit = handleAuth;
-        }
-
-        window.toggleAuthMode = function() {
-            isLoginMode = !isLoginMode;
-            renderAuthView();
-        }
-
-        async function handleAuth(e) {
-            e.preventDefault();
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            const errorMessageElement = document.getElementById('auth-error-message');
-            errorMessageElement.classList.add('hidden');
-            document.getElementById('loader').classList.remove('hidden');
-            try {
-                if (isLoginMode) {
-                    await signInWithEmailAndPassword(auth, email, password);
-                    showMessage('Log Masuk Berjaya', 'Selamat datang ke SPPD!', 'text-green-700');
-                } else {
-                    await createUserWithEmailAndPassword(auth, email, password);
-                    showMessage('Daftar Berjaya', 'Akaun anda telah dibuat. Sila Log Masuk.', 'text-green-700');
-                    isLoginMode = true;
-                    renderAuthView();
-                }
-            } catch (error) {
-                console.error("Ralat Pengesahan:", error);
-                let userFriendlyMessage = 'Ralat tidak diketahui. Sila cuba lagi.';
-                switch(error.code) {
-                    case 'auth/user-not-found':
-                    case 'auth/wrong-password':
-                        userFriendlyMessage = 'E-mel atau kata laluan tidak sah.';
-                        break;
-                    case 'auth/email-already-in-use':
-                        userFriendlyMessage = 'E-mel ini sudah didaftarkan.';
-                        break;
-                    case 'auth/weak-password':
-                        userFriendlyMessage = 'Kata laluan terlalu lemah (minimum 6 aksara).';
-                        break;
-                    case 'auth/invalid-email':
-                        userFriendlyMessage = 'Format e-mel tidak sah.';
-                        break;
-                    default:
-                        userFriendlyMessage = `Ralat: ${error.message}`;
-                }
-                errorMessageElement.textContent = userFriendlyMessage;
-                errorMessageElement.classList.remove('hidden');
-                document.getElementById('loader').classList.add('hidden');
-            }
-        }
-
-        function renderPanitiaDashboard() {
-            const contentView = document.getElementById('content-view');
-            contentView.innerHTML = `
-                <h2 class="text-3xl font-extrabold text-gray-800 mb-6 border-b pb-2">Pilih Panitia Mata Pelajaran</h2>
-                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6" id="panitia-grid"></div>
-            `;
-            const panitiaGrid = document.getElementById('panitia-grid');
-            panitiaList.forEach(panitiaName => {
-                const card = document.createElement('div');
-                card.className = 'panitia-item bg-white p-6 rounded-xl shadow-lg border border-gray-200 flex flex-col items-center text-center';
-                card.innerHTML = `
-                    <span class="text-4xl mb-3">👨‍🏫</span>
-                    <h3 class="text-lg font-semibold text-indigo-700">${panitiaName}</h3>
-                    <p class="text-sm text-gray-500 mt-1">Klik untuk mengurus fail.</p>
-                `;
-                card.onclick = () => selectPanitia(panitiaName);
-                panitiaGrid.appendChild(card);
-            });
-        }
-
-        window.selectPanitia = function(panitiaName) {
-            currentPanitia = panitiaName;
-            renderView('panitia-view');
-        }
-
-        function renderPanitiaFolderView() {
-            const contentView = document.getElementById('content-view');
-            contentView.innerHTML = `
-                <div class="flex items-center space-x-3 mb-6">
-                    <button onclick="renderView('panitia-dashboard')" class="text-indigo-600 hover:text-indigo-800 font-medium">← Kembali ke Pilihan Panitia</button>
-                </div>
-                <h2 class="text-3xl font-extrabold text-gray-800 mb-2">${currentPanitia}</h2>
-                <h3 class="text-2xl font-semibold text-indigo-700 mb-6 border-b pb-2">${currentFolder ? currentFolder : 'Pengurusan Fail'}</h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="folder-grid"></div>
-            `;
-            const folderGrid = document.getElementById('folder-grid');
-            folderList.forEach((folder, index) => {
-                const card = document.createElement('div');
-                card.className = 'panitia-item bg-white p-6 rounded-xl shadow-lg border border-indigo-100 flex flex-col justify-between';
-                card.innerHTML = `
-                    <div class="flex items-center space-x-3 mb-3">
-                        <span class="text-3xl">${folder.icon}</span>
-                        <h3 class="text-xl font-semibold text-gray-800">Fail ${index + 1}: ${folder.name}</h3>
-                    </div>
-                    <p class="text-sm text-gray-600">Lihat, tambah, edit dan padam dokumen berkaitan.</p>
-                `;
-                card.onclick = () => selectFolder(folder.name);
-                folderGrid.appendChild(card);
-            });
-        }
-
-        window.selectFolder = function(folderName) {
-            currentFolder = folderName;
-            renderView('folder-content');
-        }
-
-        function renderFolderContent() {
-            const contentView = document.getElementById('content-view');
-            contentView.innerHTML = `
-                <div class="flex items-center space-x-3 mb-4">
-                    <button onclick="renderView('panitia-view')" class="text-indigo-600 hover:text-indigo-800 font-medium">← Kembali ke Fail Panitia</button>
-                </div>
-                <h2 class="text-3xl font-extrabold text-gray-800 mb-2">${currentPanitia}</h2>
-                <h3 class="text-2xl font-semibold text-indigo-700 mb-6 border-b pb-2">${currentFolder}</h3>
-                <div class="flex justify-end mb-4">
-                    <button onclick="openCrudModal('add')" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md flex items-center space-x-2 transition duration-150">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
-                        <span>Tambah Item Baru</span>
-                    </button>
-                </div>
-                <div id="content-list-container" class="bg-white p-4 rounded-xl shadow-lg">
-                    <p class="text-center text-gray-500">Memuatkan data...</p>
-                    <ul id="content-list" class="divide-y divide-gray-200"></ul>
-                </div>
-            `;
-            fetchContentRealtime();
-        }
-
-        function fetchContentRealtime() {
-            if (!userId) {
-                document.getElementById('content-list').innerHTML = `<li class="p-4 text-center text-red-500">Ralat: Pengguna belum disahkan.</li>`;
-                return;
-            }
-            const collectionRef = collection(db, getCollectionPath());
-            const q = query(collectionRef, where("panitia", "==", currentPanitia), where("folder", "==", currentFolder));
-            if (activeSnapshotUnsubscribe) activeSnapshotUnsubscribe();
-            activeSnapshotUnsubscribe = onSnapshot(q, (snapshot) => {
-                const items = [];
-                snapshot.forEach((doc) => {
-                    items.push({ id: doc.id, ...doc.data() });
-                });
-                displayContentList(items.sort((a, b) => new Date(b.date) - new Date(a.date)));
-            }, (error) => {
-                console.error("Ralat Firestore:", error);
-                showMessage('Ralat Akses Data', `Gagal memuatkan data. Sila sahkan peraturan keselamatan Firebase: ${error.message}`, 'text-red-700');
-            });
-        }
-
-        function displayContentList(items) {
-            const listElement = document.getElementById('content-list');
-            listElement.innerHTML = '';
-            if (items.length === 0) {
-                listElement.innerHTML = `<li class="p-4 text-center text-gray-500">Tiada item di dalam fail ini. Sila tambah dokumen pertama anda.</li>`;
-                return;
-            }
-            items.forEach(item => {
-                const contentText = item.content || 'Tiada penerangan/pautan.';
-                const listItem = document.createElement('li');
-                listItem.className = 'p-4 flex justify-between items-center hover:bg-gray-50 transition duration-150 rounded-lg';
-                let contentDisplay = '';
-                if (contentText.startsWith('http')) {
-                    contentDisplay = `<a href="${contentText}" target="_blank" class="text-sm text-blue-600 hover:text-blue-800 underline block truncate max-w-lg">Muat Turun Fail</a>`;
-                } else {
-                    contentDisplay = `<p class="text-sm text-gray-600 truncate max-w-lg">${contentText}</p>`;
-                }
-                listItem.innerHTML = `
-                    <div class="flex-grow">
-                        <p class="text-lg font-semibold text-gray-900">${item.title || 'Tiada Tajuk'}</p>
-                        <p class="text-sm text-indigo-600">Bertarikh: ${item.date || 'Tarikh Tidak Diketahui'}</p>
-                        ${contentDisplay}
-                    </div>
-                    <div class="flex space-x-2">
-                        <button onclick="openCrudModal('edit', '${item.id}', '${(item.title || '').replace(/'/g, "\\'")}', '${item.date || ''}', '${(contentText || '').replace(/'/g, "\\'")}')"
-                                class="text-indigo-600 hover:text-indigo-800 p-2 rounded-full hover:bg-indigo-100 transition duration-150" title="Edit">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-6-1l-9-9V7m0 0h4m-4 0v4m-2 2L19 5l-2-2m-2 2l4 4"></path></svg>
-                        </button>
-                        <button onclick="promptDeleteConfirmation('${item.id}', '${(item.title || '').replace(/'/g, "\\'")}')"
-                                class="text-red-600 hover:text-red-800 p-2 rounded-full hover:bg-red-100 transition duration-150" title="Padam">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                        </button>
-                    </div>
-                `;
-                listElement.appendChild(listItem);
-            });
-        }
-
-        window.openCrudModal = function(mode, id = '', title = '', date = '', content = '') {
-            const modal = document.getElementById('crud-modal');
-            const modalTitle = document.getElementById('modal-title');
-            const itemId = document.getElementById('item-id');
-            const itemTitle = document.getElementById('item-title');
-            const itemDate = document.getElementById('item-date');
-            const itemContent = document.getElementById('item-content');
-            const itemFile = document.getElementById('item-file');
-            const saveButton = document.getElementById('save-button');
-
-            itemId.value = id;
-            itemTitle.value = title;
-            itemDate.value = date;
-            itemContent.value = content.replace(/\\'/g, "'");
-            itemFile.value = ''; // Reset file input
-
-            if (mode === 'add') {
-                modalTitle.textContent = `Tambah Item Baru ke ${currentFolder}`;
-                saveButton.textContent = 'Tambah';
-                itemTitle.value = '';
-                itemDate.value = new Date().toISOString().substring(0, 10);
-                itemContent.value = '';
-            } else {
-                modalTitle.textContent = `Edit Item: ${title}`;
-                saveButton.textContent = 'Simpan Perubahan';
-            }
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-        }
-
-        document.getElementById('crud-form').onsubmit = async function(e) {
-            e.preventDefault();
-            const id = document.getElementById('item-id').value;
-            const title = document.getElementById('item-title').value;
-            const date = document.getElementById('item-date').value;
-            const content = document.getElementById('item-content').value;
-            const fileInput = document.getElementById('item-file');
-            const file = fileInput.files[0];
-
-            closeModal('crud-modal');
-            document.getElementById('loader').classList.remove('hidden');
-
-            let finalContent = content; // Default to text
-
-            if (file) {
+        onAuthStateChanged(auth, async (user) => {
+            currentUser = user;
+            document.getElementById('loader').classList.add('hidden');
+            if (user) {
+                // AMBIL NAMA GURU DARIPADA FIRESTORE (Koleksi users)
                 try {
-                    const fileName = `${Date.now()}_${file.name}`;
-                    const storageRef = ref(storage, `uploads/${appId}/${currentPanitia}/${fileName}`);
-                    await uploadBytes(storageRef, file);
-                    finalContent = await getDownloadURL(storageRef);
-                } catch (uploadError) {
-                    console.error("Upload error:", uploadError);
-                    showMessage('Ralat Muat Naik', `Gagal memuat naik fail: ${uploadError.message}`, 'text-red-700');
-                    document.getElementById('loader').classList.add('hidden');
+                    const userRef = doc(db, "users", user.uid);
+                    const userSnap = await getDoc(userRef);
+                    if (userSnap.exists()) {
+                        currentNama = userSnap.data().nama || user.email;
+                    } else {
+                        currentNama = user.email.split('@')[0]; // Fallback jika tiada rekod nama
+                    }
+                } catch (e) { currentNama = user.email; }
+
+                document.getElementById('user-display').textContent = currentNama;
+                document.getElementById('auth-view').classList.add('hidden');
+                document.getElementById('app-header').classList.remove('hidden');
+                showDashboard();
+            } else {
+                document.getElementById('auth-view').classList.remove('hidden');
+                document.getElementById('app-header').classList.add('hidden');
+                hideAllViews();
+            }
+        });
+
+        window.toggleAuthMode = () => {
+            isLoginMode = !isLoginMode;
+            document.getElementById('auth-title').innerText = isLoginMode ? "LOG MASUK GURU" : "DAFTAR AKAUN BARU";
+            document.getElementById('auth-submit-btn').innerText = isLoginMode ? "LOG MASUK" : "DAFTAR SEKARANG";
+        };
+
+        document.getElementById('auth-form').onsubmit = async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('auth-email').value;
+            const pass = document.getElementById('auth-password').value;
+            try {
+                if (isLoginMode) await signInWithEmailAndPassword(auth, email, pass);
+                else await createUserWithEmailAndPassword(auth, email, pass);
+            } catch (err) { alert("Ralat: " + err.message); }
+        };
+
+        document.getElementById('logout-button').onclick = () => { if(confirm("Log keluar?")) signOut(auth); };
+
+        window.updateSesi = (val) => { selectedSesi = val; showDashboard(); };
+
+        window.showDashboard = () => {
+            hideAllViews();
+            document.getElementById('panitia-dashboard').classList.remove('hidden');
+            const grid = document.getElementById('panitia-grid');
+            grid.innerHTML = "";
+            panitiaList.forEach(p => {
+                const div = document.createElement('div');
+                div.className = "panitia-item bg-white p-6 rounded-2xl shadow-md text-center border-t-4 border-indigo-600";
+                div.innerHTML = `<span class="text-4xl block mb-3">📂</span><h3 class="font-bold text-indigo-900">${p}</h3>`;
+                div.onclick = () => { currentPanitia = p; showFolderView(); };
+                grid.appendChild(div);
+            });
+        };
+
+        window.showFolderView = () => {
+            hideAllViews();
+            document.getElementById('folder-view').classList.remove('hidden');
+            document.getElementById('current-panitia-name').innerText = currentPanitia;
+            const grid = document.getElementById('folder-grid');
+            grid.innerHTML = "";
+            folderList.forEach(f => {
+                const div = document.createElement('div');
+                div.className = "panitia-item bg-white p-6 rounded-2xl shadow border-l-8 border-indigo-600 flex items-center space-x-4";
+                div.innerHTML = `<span class="text-3xl">${f.icon}</span><h3 class="font-bold text-gray-800">${f.name}</h3>`;
+                div.onclick = () => { currentFolder = f.name; document.getElementById('folder-icon-display').innerText = f.icon; showFolderContent(); };
+                grid.appendChild(div);
+            });
+        };
+
+        window.showFolderContent = () => {
+            hideAllViews();
+            document.getElementById('content-view').classList.remove('hidden');
+            document.getElementById('current-folder-path').innerText = `${currentPanitia} ➔ ${currentFolder}`;
+            loadDataRealtime();
+        };
+
+        function hideAllViews() {
+            document.getElementById('panitia-dashboard').classList.add('hidden');
+            document.getElementById('folder-view').classList.add('hidden');
+            document.getElementById('content-view').classList.add('hidden');
+            if(unsubTable) unsubTable();
+        }
+
+        function loadDataRealtime() {
+            const q = query(collection(db, "sesi", selectedSesi, "panitia_data"), where("panitia", "==", currentPanitia), where("folder", "==", currentFolder));
+            unsubTable = onSnapshot(q, (snapshot) => {
+                const tbody = document.getElementById('content-list');
+                tbody.innerHTML = "";
+                if(snapshot.empty) {
+                    tbody.innerHTML = "<tr><td colspan='3' class='p-10 text-center text-gray-400 italic'>Tiada dokumen.</td></tr>";
                     return;
                 }
-            }
+                snapshot.forEach(docSnap => {
+                    const d = docSnap.data();
+                    const tr = document.createElement('tr');
+                    tr.className = "hover:bg-indigo-50 transition";
+                    tr.innerHTML = `
+                        <td class="px-6 py-4">
+                            <div class="font-bold text-indigo-900">${d.title}</div>
+                            <div class="text-[10px] text-gray-400 italic">${d.content || ''}</div>
+                        </td>
+                        <td class="px-6 py-4 text-xs">
+                            <div class="font-bold">${d.date}</div>
+                            <div class="text-indigo-400">Oleh: ${d.authorNama || 'Cikgu'}</div>
+                        </td>
+                        <td class="px-6 py-4 text-right space-x-2 whitespace-nowrap">
+                            ${d.fileUrl ? `<a href="${d.fileUrl}" target="_blank" class="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full text-[10px] font-bold">LIHAT</a>` : ''}
+                            <button onclick="openCrudModal('edit', '${docSnap.id}', '${d.title}', '${d.date}', '${d.content}')" class="text-amber-600">✏️</button>
+                            <button onclick="deleteDocItem('${docSnap.id}')" class="text-red-600">🗑️</button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            });
+        }
 
-            const itemData = {
-                panitia: currentPanitia,
-                folder: currentFolder,
-                title: title,
-                date: date,
-                content: finalContent,
-                authorId: userId,
-                timestamp: new Date().toISOString()
-            };
+        window.openCrudModal = (mode, id='', title='', date='', content='') => {
+            document.getElementById('modal-title').innerText = mode === 'add' ? "Tambah Dokumen" : "Kemaskini";
+            document.getElementById('item-id').value = id;
+            document.getElementById('item-title').value = title;
+            document.getElementById('item-date').value = date;
+            document.getElementById('item-content').value = content;
+            document.getElementById('item-file').value = "";
+            document.getElementById('crud-modal').classList.replace('hidden', 'flex');
+        };
 
+        window.closeModal = (id) => document.getElementById(id).classList.replace('flex', 'hidden');
+
+        document.getElementById('crud-form').onsubmit = async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('item-id').value;
+            const file = document.getElementById('item-file').files[0];
+            const saveBtn = document.getElementById('save-btn');
+            saveBtn.disabled = true;
+            saveBtn.innerText = "Simpan...";
+
+            let fileUrl = "";
             try {
-                if (id) {
-                    await updateDoc(doc(db, getCollectionPath(), id), itemData);
-                    showMessage('Berjaya', 'Item telah berjaya dikemaskini.');
-                } else {
-                    await addDoc(collection(db, getCollectionPath()), itemData);
-                    showMessage('Berjaya', 'Item baru telah berjaya ditambah.');
+                if (file) {
+                    const fileRef = ref(storage, `panitia/${selectedSesi}/${currentPanitia}/${Date.now()}_${file.name}`);
+                    const uploadRes = await uploadBytes(fileRef, file);
+                    fileUrl = await getDownloadURL(uploadRes.ref);
                 }
-            } catch (e) {
-                console.error("CRUD error:", e);
-                showMessage('Ralat', `Gagal menyimpan data: ${e.message}`, 'text-red-700');
-            } finally {
-                document.getElementById('loader').classList.add('hidden');
-            }
-        }
 
-        window.promptDeleteConfirmation = function(id, title) {
-            const modal = document.getElementById('confirm-modal');
-            const unescapedTitle = title.replace(/\\'/g, "'");
-            document.getElementById('confirm-message').innerHTML = `Adakah anda pasti mahu **PADAM** item:<br><span class="font-bold text-red-600">${unescapedTitle}</span>? Tindakan ini tidak boleh diundur.`;
-            document.getElementById('confirm-action-button').onclick = () => deleteItem(id);
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-        }
+                const payload = {
+                    title: document.getElementById('item-title').value,
+                    date: document.getElementById('item-date').value,
+                    content: document.getElementById('item-content').value,
+                    panitia: currentPanitia, folder: currentFolder,
+                    authorUid: currentUser.uid, authorNama: currentNama,
+                    updatedAt: serverTimestamp()
+                };
 
-        window.cancelConfirmation = function() {
-            closeModal('confirm-modal');
-            document.getElementById('confirm-action-button').onclick = null;
-        }
+                if(fileUrl) payload.fileUrl = fileUrl;
 
-        async function deleteItem(id) {
-            closeModal('confirm-modal');
-            document.getElementById('loader').classList.remove('hidden');
-            try {
-                await deleteDoc(doc(db, getCollectionPath(), id));
-                showMessage('Berjaya', 'Item telah berjaya dipadam.');
-            } catch (e) {
-                console.error("Delete error:", e);
-                showMessage('Ralat', `Gagal memadam item: ${e.message}`, 'text-red-700');
-            } finally {
-                document.getElementById('loader').classList.add('hidden');
-            }
-        }
+                if(id) await updateDoc(doc(db, "sesi", selectedSesi, "panitia_data", id), payload);
+                else await addDoc(collection(db, "sesi", selectedSesi, "panitia_data"), payload);
+                
+                closeModal('crud-modal');
+            } catch (err) { alert("Ralat: " + err.message); }
+            finally { saveBtn.disabled = false; saveBtn.innerText = "SIMPAN"; }
+        };
 
-        document.getElementById('logout-button').onclick = async function() {
-            try {
-                if (activeSnapshotUnsubscribe) {
-                    activeSnapshotUnsubscribe();
-                    activeSnapshotUnsubscribe = null;
-                }
-                await signOut(auth);
-            } catch (e) {
-                console.error("Logout error:", e);
-                showMessage('Ralat', 'Gagal log keluar. Sila cuba lagi.', 'text-red-700');
-            }
-        }
-
-        initializeAppAndAuth();
+        window.deleteDocItem = async (id) => {
+            if(confirm("Padam dokumen?")) await deleteDoc(doc(db, "sesi", selectedSesi, "panitia_data", id));
+        };
     </script>
 </body>
 </html>
