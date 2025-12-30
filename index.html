@@ -9,76 +9,86 @@
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Cinzel:wght@700&display=swap');
         body { font-family: 'Inter', sans-serif; background-color: #f7f9fb; }
         .font-cinzel { font-family: 'Cinzel', serif; }
-        .panitia-item { cursor: pointer; transition: all 0.2s; }
+        .panitia-item { cursor: pointer; transition: all 0.2s ease-in-out; }
         .panitia-item:hover { transform: translateY(-3px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
-        .loader-spinner { border: 4px solid #f3f3f3; border-top: 4px solid #4f46e5; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+        .required-text::after { content: " *"; color: #ef4444; }
+        .loader-spinner { border: 4px solid #f3f3f3; border-top: 4px solid #3730a3; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .hidden { display: none !important; }
     </style>
 </head>
 <body>
     <div id="app-container" class="min-h-screen flex flex-col">
         
-        <div id="main-loader" class="fixed inset-0 bg-white z-[100] flex flex-col items-center justify-center">
-            <div class="loader-spinner"></div>
-            <p class="mt-4 text-gray-500 font-bold animate-pulse">MENYEMAK SESI PORTAL...</p>
-        </div>
-
-        <header id="app-header" class="bg-indigo-900 shadow-xl p-4 text-white flex justify-between items-center hidden">
+        <header id="app-header" class="bg-indigo-900 shadow-xl p-4 text-white flex justify-between items-center hidden no-print">
             <div class="flex items-center space-x-3">
                 <div class="bg-white p-1 rounded">
-                    <img src="sppd.png" class="h-8 md:h-12" alt="LOGO SPPD" onerror="this.src='https://via.placeholder.com/50?text=SPPD'">
+                    <img src="sppd.png" class="h-8 md:h-12" alt="SPPD LOGO" onerror="this.src='https://via.placeholder.com/50?text=SPPD'">
                 </div>
                 <div>
                     <h1 class="text-lg md:text-xl font-bold font-cinzel text-yellow-400 leading-none">SPPD</h1>
-                    <p class="text-[10px] md:text-xs tracking-tighter opacity-80 uppercase font-bold">Sistem Pengurusan Panitia Digital SK Abang Gesa</p>
+                    <p class="text-[10px] md:text-xs tracking-tighter opacity-80 uppercase">Panitia Digital SKAG</p>
                 </div>
             </div>
 
             <div class="flex items-center space-x-4">
-                <div class="text-right hidden sm:block leading-tight">
-                    <p class="text-[9px] text-indigo-300 uppercase font-bold">Log Masuk Sebagai:</p>
-                    <p id="user-display" class="text-xs font-bold text-white uppercase tracking-wide italic">Memuatkan nama...</p>
+                <div class="text-right hidden sm:block">
+                    <p class="text-[9px] text-indigo-300 uppercase font-bold leading-none">Log Masuk Sebagai:</p>
+                    <p id="user-display" class="text-xs font-semibold text-white uppercase tracking-wide">Memuatkan nama...</p>
                 </div>
-                
+
+                <div class="h-8 w-[1px] bg-indigo-700 hidden sm:block"></div>
+
                 <div class="flex flex-col">
-                    <select id="sesiSelector" onchange="updateSesi(this.value)" class="bg-indigo-800 border border-indigo-700 rounded text-[10px] p-1 font-bold text-white outline-none">
+                    <span class="text-[9px] text-indigo-300 font-bold">SESI:</span>
+                    <select id="sesiSelector" onchange="updateSesi(this.value)" class="bg-indigo-800 border-none rounded text-xs p-1 font-bold text-white outline-none cursor-pointer">
                         <option value="2024_2025">2024/2025</option>
                         <option value="2025_2026">2025/2026</option>
                     </select>
                 </div>
 
-                <button id="logout-button" class="bg-red-600 hover:bg-red-700 px-3 py-2 rounded text-[10px] font-bold shadow-lg transition">LOG KELUAR</button>
+                <button id="logout-button" class="bg-red-600 hover:bg-red-700 px-3 py-2 rounded text-[10px] font-bold transition shadow-lg">LOG KELUAR</button>
             </div>
         </header>
 
         <main class="flex-grow p-4 md:p-8">
-            
+            <div id="loader" class="flex flex-col items-center justify-center mt-32">
+                <div class="loader-spinner"></div>
+                <p class="mt-4 text-gray-500 font-medium animate-pulse">Menghubungkan ke Portal-8368...</p>
+            </div>
+
             <div id="auth-view" class="max-w-md mx-auto bg-white p-8 rounded-2xl shadow-2xl mt-10 hidden border-t-8 border-indigo-600">
                 <div class="text-center mb-8">
                     <img src="sppd.png" class="h-16 mx-auto mb-4" alt="SPPD">
-                    <h2 class="text-2xl font-bold text-indigo-900 font-cinzel uppercase">Log Masuk Sistem</h2>
+                    <h2 id="auth-title" class="text-2xl font-bold text-indigo-900 font-cinzel">LOG MASUK GURU</h2>
                 </div>
-                <form id="auth-form" class="space-y-4">
-                    <input type="email" id="auth-email" placeholder="Emel Pengguna" required class="w-full border rounded-xl p-3 bg-gray-50 outline-indigo-500">
-                    <input type="password" id="auth-password" placeholder="Kata Laluan" required class="w-full border rounded-xl p-3 bg-gray-50 outline-indigo-500">
-                    <button type="submit" class="w-full bg-indigo-600 text-white p-4 rounded-xl font-bold hover:bg-indigo-700 shadow-lg">MASUK SISTEM</button>
+                <form id="auth-form" class="space-y-5">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Emel Rasmi</label>
+                        <input type="email" id="auth-email" required class="w-full border rounded-xl p-3 outline-indigo-500 bg-gray-50">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Kata Laluan</label>
+                        <input type="password" id="auth-password" required class="w-full border rounded-xl p-3 outline-indigo-500 bg-gray-50">
+                    </div>
+                    <button type="submit" id="auth-submit-btn" class="w-full bg-indigo-600 text-white p-4 rounded-xl font-bold hover:bg-indigo-700 shadow-lg transition">LOG MASUK</button>
                 </form>
+                <div class="mt-6 text-center border-t pt-4">
+                    <button onclick="toggleAuthMode()" class="text-xs text-indigo-600 font-bold underline" id="auth-toggle-btn">Daftar Akaun Baru</button>
+                </div>
             </div>
 
             <div id="panitia-dashboard" class="hidden">
                 <div class="text-center mb-10">
-                    <h2 class="text-3xl font-bold text-indigo-900 font-cinzel tracking-widest uppercase">Pilihan Panitia</h2>
+                    <h2 class="text-3xl font-bold text-indigo-900 font-cinzel tracking-widest uppercase">Senarai Panitia</h2>
                     <div class="h-1 w-20 bg-yellow-400 mx-auto mt-2"></div>
                 </div>
                 <div id="panitia-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"></div>
             </div>
 
             <div id="folder-view" class="hidden">
-                <button onclick="showDashboard()" class="mb-6 text-indigo-600 font-bold flex items-center hover:translate-x-[-3px] transition">← KEMBALI KE PANITIA</button>
-                <div class="bg-indigo-900 p-8 rounded-2xl shadow-lg mb-8 text-center text-white relative overflow-hidden">
-                    <h2 id="current-panitia-name" class="text-3xl font-bold font-cinzel text-yellow-400 italic z-10 relative"></h2>
-                    <div class="absolute -right-4 -bottom-4 text-white opacity-10 text-8xl">📁</div>
+                <button onclick="showDashboard()" class="mb-6 text-indigo-600 font-bold flex items-center hover:translate-x-[-5px] transition duration-200">← KEMBALI</button>
+                <div class="bg-indigo-900 p-6 rounded-2xl shadow-lg mb-8 text-center text-white">
+                    <h2 id="current-panitia-name" class="text-3xl font-bold font-cinzel text-yellow-400 italic"></h2>
                 </div>
                 <div id="folder-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
             </div>
@@ -86,19 +96,19 @@
             <div id="content-view" class="hidden">
                 <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
                     <button onclick="showFolderView()" class="text-indigo-600 font-bold">← KEMBALI KE FOLDER</button>
-                    <button onclick="openCrudModal('add')" class="bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-xl font-bold shadow-xl transition">+ TAMBAH DOKUMEN</button>
+                    <button onclick="openCrudModal('add')" class="bg-green-600 text-white px-8 py-3 rounded-xl font-bold shadow-xl hover:bg-green-700 transition">+ TAMBAH DOKUMEN</button>
                 </div>
-                <div class="bg-white rounded-2xl shadow-xl border overflow-hidden">
+                <div class="bg-white rounded-2xl shadow-2xl border overflow-hidden">
                     <div class="bg-indigo-50 p-4 border-b flex items-center">
-                        <span id="folder-icon" class="text-2xl mr-2">📂</span>
+                        <span class="text-2xl mr-3" id="folder-icon-display">📁</span>
                         <h3 id="current-folder-path" class="font-bold text-indigo-900 uppercase"></h3>
                     </div>
                     <div class="overflow-x-auto">
                         <table class="w-full text-left">
-                            <thead class="bg-gray-50 text-[10px] uppercase text-gray-500 font-bold">
-                                <tr>
-                                    <th class="px-6 py-4">Dokumen & Nota</th>
-                                    <th class="px-6 py-4">Penulis & Tarikh</th>
+                            <thead class="bg-gray-50 border-b">
+                                <tr class="text-xs uppercase text-gray-500 font-bold">
+                                    <th class="px-6 py-4">Dokumen</th>
+                                    <th class="px-6 py-4">Tarikh & Penulis</th>
                                     <th class="px-6 py-4 text-right">Tindakan</th>
                                 </tr>
                             </thead>
@@ -109,30 +119,30 @@
             </div>
         </main>
 
-        <div id="crud-modal" class="fixed inset-0 bg-black bg-opacity-70 hidden items-center justify-center z-[110] p-4 backdrop-blur-sm">
+        <div id="crud-modal" class="fixed inset-0 bg-black bg-opacity-70 hidden items-center justify-center z-50 p-4 backdrop-blur-sm">
             <div class="bg-white rounded-3xl w-full max-w-lg p-8 shadow-2xl">
-                <h3 id="modal-title" class="text-xl font-bold text-indigo-900 mb-6 uppercase tracking-tight">TAMBAH ITEM</h3>
+                <h3 id="modal-title" class="text-xl font-bold text-indigo-900 mb-6 uppercase">Tambah Item</h3>
                 <form id="crud-form" class="space-y-4">
                     <input type="hidden" id="item-id">
                     <div>
-                        <label class="block text-xs font-bold text-gray-600 uppercase">Tajuk Dokumen</label>
-                        <input type="text" id="item-title" required class="w-full border rounded-xl p-3 mt-1 bg-gray-50 outline-indigo-500">
+                        <label class="block text-xs font-bold text-gray-600 uppercase required-text">Tajuk</label>
+                        <input type="text" id="item-title" required class="w-full border rounded-xl p-3 mt-1 bg-gray-50">
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-gray-600 uppercase">Tarikh Rekod</label>
-                        <input type="date" id="item-date" required class="w-full border rounded-xl p-3 mt-1 bg-gray-50 outline-indigo-500">
+                        <label class="block text-xs font-bold text-gray-600 uppercase required-text">Tarikh</label>
+                        <input type="date" id="item-date" required class="w-full border rounded-xl p-3 mt-1 bg-gray-50">
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-gray-600 uppercase">Nota Tambahan</label>
-                        <textarea id="item-content" rows="2" class="w-full border rounded-xl p-3 mt-1 bg-gray-50 outline-indigo-500"></textarea>
+                        <label class="block text-xs font-bold text-gray-600 uppercase">Nota</label>
+                        <textarea id="item-content" rows="2" class="w-full border rounded-xl p-3 mt-1 bg-gray-50"></textarea>
                     </div>
-                    <div class="bg-indigo-50 p-4 rounded-xl border-2 border-dashed border-indigo-200">
-                        <label class="block text-xs font-bold text-indigo-700 uppercase">Muat Naik Fail (Cloud)</label>
+                    <div class="bg-indigo-50 p-4 rounded-2xl border-2 border-dashed border-indigo-200">
+                        <label class="block text-xs font-bold text-indigo-900 uppercase">Fail (PDF/Imej/Doc)</label>
                         <input type="file" id="item-file" class="mt-2 text-xs w-full">
                     </div>
-                    <div class="flex justify-end space-x-3 pt-6">
-                        <button type="button" onclick="closeModal()" class="px-6 py-3 font-bold text-gray-400">BATAL</button>
-                        <button type="submit" id="save-btn" class="px-8 py-3 bg-indigo-600 text-white rounded-xl font-bold shadow-lg">SIMPAN DATA</button>
+                    <div class="flex justify-end space-x-3 mt-8">
+                        <button type="button" onclick="closeModal('crud-modal')" class="px-6 py-3 font-bold text-gray-500">BATAL</button>
+                        <button type="submit" id="save-btn" class="px-8 py-3 bg-indigo-600 text-white rounded-xl font-bold shadow-lg">SIMPAN</button>
                     </div>
                 </form>
             </div>
@@ -141,8 +151,8 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
-        import { getFirestore, doc, getDoc, collection, addDoc, query, where, getDocs, onSnapshot, deleteDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+        import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
+        import { getFirestore, doc, getDoc, collection, addDoc, query, where, onSnapshot, deleteDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
         import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-storage.js";
 
         const firebaseConfig = {
@@ -161,48 +171,29 @@
 
         let currentUser = null;
         let currentNama = "";
+        let isLoginMode = true;
         let selectedSesi = "2024_2025";
         let currentPanitia = "";
         let currentFolder = "";
-        let currentFolderIcon = "📁";
         let unsubTable = null;
 
         const panitiaList = ["Bahasa Melayu", "Bahasa Inggeris", "Matematik", "Sains", "Pendidikan Islam", "Sejarah", "RBT", "PJK", "Seni Visual"];
-        const folderList = [
-            { name: "Fail Induk", icon: "📋" }, { name: "Kurikulum & DSKP", icon: "📚" },
-            { name: "Minit Mesyuarat", icon: "🗓️" }, { name: "PBD & Analisis", icon: "📊" },
-            { name: "Laporan Aktiviti", icon: "🚀" }, { name: "Pencerapan Guru", icon: "👀" }
-        ];
-
-        // 1. FUNGSI PENGAMBILAN PROFIL GURU (SMART SEARCH)
-        async function fetchTeacherProfile(user) {
-            try {
-                // Cuba cari menggunakan UID sebagai ID Dokumen
-                const docRef = doc(db, "pengguna", user.uid);
-                const docSnap = await getDoc(docRef);
-                
-                if (docSnap.exists()) {
-                    return docSnap.data().nama_penuh || user.email.split('@')[0];
-                }
-
-                // Jika gagal, cari menggunakan QUERY emel (Sangat berguna jika ID dokumen bukan UID)
-                const q = query(collection(db, "pengguna"), where("emel", "==", user.email));
-                const querySnapshot = await getDocs(q);
-                
-                if (!querySnapshot.empty) {
-                    return querySnapshot.docs[0].data().nama_penuh;
-                }
-            } catch (e) {
-                console.error("Ralat ambil profil:", e);
-            }
-            return user.email.split('@')[0]; // Fallback terakhir
-        }
+        const folderList = [{ name: "Fail Induk", icon: "📋" }, { name: "Kurikulum & DSKP", icon: "📚" }, { name: "Minit Mesyuarat", icon: "🗓️" }, { name: "PBD & Analisis", icon: "📊" }, { name: "Laporan Aktiviti", icon: "🚀" }, { name: "Pencerapan Guru", icon: "👀" }];
 
         onAuthStateChanged(auth, async (user) => {
-            const loader = document.getElementById('main-loader');
+            currentUser = user;
+            document.getElementById('loader').classList.add('hidden');
             if (user) {
-                currentUser = user;
-                currentNama = await fetchTeacherProfile(user);
+                // AMBIL NAMA GURU DARIPADA FIRESTORE (Koleksi users)
+                try {
+                    const userRef = doc(db, "users", user.uid);
+                    const userSnap = await getDoc(userRef);
+                    if (userSnap.exists()) {
+                        currentNama = userSnap.data().nama || user.email;
+                    } else {
+                        currentNama = user.email.split('@')[0]; // Fallback jika tiada rekod nama
+                    }
+                } catch (e) { currentNama = user.email; }
 
                 document.getElementById('user-display').textContent = currentNama;
                 document.getElementById('auth-view').classList.add('hidden');
@@ -211,42 +202,46 @@
             } else {
                 document.getElementById('auth-view').classList.remove('hidden');
                 document.getElementById('app-header').classList.add('hidden');
-                hideAll();
+                hideAllViews();
             }
-            loader.classList.add('hidden');
         });
 
-        // 2. AUTH LOGIC
+        window.toggleAuthMode = () => {
+            isLoginMode = !isLoginMode;
+            document.getElementById('auth-title').innerText = isLoginMode ? "LOG MASUK GURU" : "DAFTAR AKAUN BARU";
+            document.getElementById('auth-submit-btn').innerText = isLoginMode ? "LOG MASUK" : "DAFTAR SEKARANG";
+        };
+
         document.getElementById('auth-form').onsubmit = async (e) => {
             e.preventDefault();
+            const email = document.getElementById('auth-email').value;
+            const pass = document.getElementById('auth-password').value;
             try {
-                await signInWithEmailAndPassword(auth, document.getElementById('auth-email').value, document.getElementById('auth-password').value);
-            } catch (err) { alert("RALAT: Emel atau Kata Laluan Salah!"); }
+                if (isLoginMode) await signInWithEmailAndPassword(auth, email, pass);
+                else await createUserWithEmailAndPassword(auth, email, pass);
+            } catch (err) { alert("Ralat: " + err.message); }
         };
 
-        document.getElementById('logout-button').onclick = () => {
-            if(confirm("Log keluar dari SPPD?")) signOut(auth);
-        };
+        document.getElementById('logout-button').onclick = () => { if(confirm("Log keluar?")) signOut(auth); };
 
-        // 3. NAVIGATION LOGIC
         window.updateSesi = (val) => { selectedSesi = val; showDashboard(); };
 
         window.showDashboard = () => {
-            hideAll();
+            hideAllViews();
             document.getElementById('panitia-dashboard').classList.remove('hidden');
             const grid = document.getElementById('panitia-grid');
             grid.innerHTML = "";
             panitiaList.forEach(p => {
                 const div = document.createElement('div');
                 div.className = "panitia-item bg-white p-6 rounded-2xl shadow-md text-center border-t-4 border-indigo-600";
-                div.innerHTML = `<span class="text-4xl block mb-2">📂</span><h3 class="font-bold text-indigo-900 leading-tight">${p}</h3>`;
+                div.innerHTML = `<span class="text-4xl block mb-3">📂</span><h3 class="font-bold text-indigo-900">${p}</h3>`;
                 div.onclick = () => { currentPanitia = p; showFolderView(); };
                 grid.appendChild(div);
             });
         };
 
         window.showFolderView = () => {
-            hideAll();
+            hideAllViews();
             document.getElementById('folder-view').classList.remove('hidden');
             document.getElementById('current-panitia-name').innerText = currentPanitia;
             const grid = document.getElementById('folder-grid');
@@ -255,62 +250,51 @@
                 const div = document.createElement('div');
                 div.className = "panitia-item bg-white p-6 rounded-2xl shadow border-l-8 border-indigo-600 flex items-center space-x-4";
                 div.innerHTML = `<span class="text-3xl">${f.icon}</span><h3 class="font-bold text-gray-800">${f.name}</h3>`;
-                div.onclick = () => { 
-                    currentFolder = f.name; 
-                    currentFolderIcon = f.icon;
-                    showFolderContent(); 
-                };
+                div.onclick = () => { currentFolder = f.name; document.getElementById('folder-icon-display').innerText = f.icon; showFolderContent(); };
                 grid.appendChild(div);
             });
         };
 
         window.showFolderContent = () => {
-            hideAll();
+            hideAllViews();
             document.getElementById('content-view').classList.remove('hidden');
             document.getElementById('current-folder-path').innerText = `${currentPanitia} ➔ ${currentFolder}`;
-            document.getElementById('folder-icon').innerText = currentFolderIcon;
-            loadTableData();
+            loadDataRealtime();
         };
 
-        function hideAll() {
+        function hideAllViews() {
             document.getElementById('panitia-dashboard').classList.add('hidden');
             document.getElementById('folder-view').classList.add('hidden');
             document.getElementById('content-view').classList.add('hidden');
             if(unsubTable) unsubTable();
         }
 
-        // 4. DATA LOGIC (CRUD)
-        function loadTableData() {
-            const q = query(
-                collection(db, "sesi", selectedSesi, "panitia_data"),
-                where("panitia", "==", currentPanitia),
-                where("folder", "==", currentFolder)
-            );
-            
-            unsubTable = onSnapshot(q, (snap) => {
+        function loadDataRealtime() {
+            const q = query(collection(db, "sesi", selectedSesi, "panitia_data"), where("panitia", "==", currentPanitia), where("folder", "==", currentFolder));
+            unsubTable = onSnapshot(q, (snapshot) => {
                 const tbody = document.getElementById('content-list');
                 tbody.innerHTML = "";
-                if(snap.empty) {
-                    tbody.innerHTML = `<tr><td colspan="3" class="p-12 text-center text-gray-400 italic">Tiada fail ditemui.</td></tr>`;
+                if(snapshot.empty) {
+                    tbody.innerHTML = "<tr><td colspan='3' class='p-10 text-center text-gray-400 italic'>Tiada dokumen.</td></tr>";
                     return;
                 }
-                snap.forEach(docSnap => {
+                snapshot.forEach(docSnap => {
                     const d = docSnap.data();
                     const tr = document.createElement('tr');
                     tr.className = "hover:bg-indigo-50 transition";
                     tr.innerHTML = `
                         <td class="px-6 py-4">
-                            <div class="font-bold text-indigo-900 uppercase">${d.title}</div>
-                            <div class="text-[10px] text-gray-500 italic mt-1">${d.content || 'Tiada nota'}</div>
+                            <div class="font-bold text-indigo-900">${d.title}</div>
+                            <div class="text-[10px] text-gray-400 italic">${d.content || ''}</div>
                         </td>
-                        <td class="px-6 py-4">
-                            <div class="text-[10px] font-bold text-gray-700">${d.date}</div>
-                            <div class="text-[9px] text-indigo-400">Oleh: ${d.authorNama}</div>
+                        <td class="px-6 py-4 text-xs">
+                            <div class="font-bold">${d.date}</div>
+                            <div class="text-indigo-400">Oleh: ${d.authorNama || 'Cikgu'}</div>
                         </td>
                         <td class="px-6 py-4 text-right space-x-2 whitespace-nowrap">
-                            ${d.fileUrl ? `<a href="${d.fileUrl}" target="_blank" class="bg-indigo-600 text-white px-3 py-1 rounded-full text-[10px] font-bold shadow-md">LIHAT FAIL</a>` : ''}
-                            <button onclick="openCrudModal('edit', '${docSnap.id}', '${d.title}', '${d.date}', '${d.content}')" class="text-amber-500">✏️</button>
-                            <button onclick="deleteItem('${docSnap.id}')" class="text-red-500">🗑️</button>
+                            ${d.fileUrl ? `<a href="${d.fileUrl}" target="_blank" class="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full text-[10px] font-bold">LIHAT</a>` : ''}
+                            <button onclick="openCrudModal('edit', '${docSnap.id}', '${d.title}', '${d.date}', '${d.content}')" class="text-amber-600">✏️</button>
+                            <button onclick="deleteDocItem('${docSnap.id}')" class="text-red-600">🗑️</button>
                         </td>
                     `;
                     tbody.appendChild(tr);
@@ -319,60 +303,54 @@
         }
 
         window.openCrudModal = (mode, id='', title='', date='', content='') => {
-            document.getElementById('modal-title').innerText = mode === 'add' ? "TAMBAH DOKUMEN" : "KEMASKINI DOKUMEN";
+            document.getElementById('modal-title').innerText = mode === 'add' ? "Tambah Dokumen" : "Kemaskini";
             document.getElementById('item-id').value = id;
             document.getElementById('item-title').value = title;
-            document.getElementById('item-date').value = date || new Date().toISOString().split('T')[0];
+            document.getElementById('item-date').value = date;
             document.getElementById('item-content').value = content;
+            document.getElementById('item-file').value = "";
             document.getElementById('crud-modal').classList.replace('hidden', 'flex');
         };
 
-        window.closeModal = () => document.getElementById('crud-modal').classList.replace('flex', 'hidden');
+        window.closeModal = (id) => document.getElementById(id).classList.replace('flex', 'hidden');
 
         document.getElementById('crud-form').onsubmit = async (e) => {
             e.preventDefault();
             const id = document.getElementById('item-id').value;
             const file = document.getElementById('item-file').files[0];
             const saveBtn = document.getElementById('save-btn');
-
             saveBtn.disabled = true;
-            saveBtn.innerText = "SEDANG SIMPAN...";
+            saveBtn.innerText = "Simpan...";
 
+            let fileUrl = "";
             try {
-                let fileUrl = "";
                 if (file) {
-                    const fileRef = ref(storage, `sppd/${selectedSesi}/${currentPanitia}/${Date.now()}_${file.name}`);
-                    const uploadSnap = await uploadBytes(fileRef, file);
-                    fileUrl = await getDownloadURL(uploadSnap.ref);
+                    const fileRef = ref(storage, `panitia/${selectedSesi}/${currentPanitia}/${Date.now()}_${file.name}`);
+                    const uploadRes = await uploadBytes(fileRef, file);
+                    fileUrl = await getDownloadURL(uploadRes.ref);
                 }
 
-                const data = {
+                const payload = {
                     title: document.getElementById('item-title').value,
                     date: document.getElementById('item-date').value,
                     content: document.getElementById('item-content').value,
-                    panitia: currentPanitia,
-                    folder: currentFolder,
-                    authorNama: currentNama, // Nama penuh guru direkodkan di sini
+                    panitia: currentPanitia, folder: currentFolder,
+                    authorUid: currentUser.uid, authorNama: currentNama,
                     updatedAt: serverTimestamp()
                 };
 
-                if(fileUrl) data.fileUrl = fileUrl;
+                if(fileUrl) payload.fileUrl = fileUrl;
 
-                if (id) await updateDoc(doc(db, "sesi", selectedSesi, "panitia_data", id), data);
-                else await addDoc(collection(db, "sesi", selectedSesi, "panitia_data"), data);
-
-                closeModal();
+                if(id) await updateDoc(doc(db, "sesi", selectedSesi, "panitia_data", id), payload);
+                else await addDoc(collection(db, "sesi", selectedSesi, "panitia_data"), payload);
+                
+                closeModal('crud-modal');
             } catch (err) { alert("Ralat: " + err.message); }
-            finally {
-                saveBtn.disabled = false;
-                saveBtn.innerText = "SIMPAN DATA";
-            }
+            finally { saveBtn.disabled = false; saveBtn.innerText = "SIMPAN"; }
         };
 
-        window.deleteItem = async (id) => {
-            if(confirm("Padam dokumen ini secara kekal?")) {
-                await deleteDoc(doc(db, "sesi", selectedSesi, "panitia_data", id));
-            }
+        window.deleteDocItem = async (id) => {
+            if(confirm("Padam dokumen?")) await deleteDoc(doc(db, "sesi", selectedSesi, "panitia_data", id));
         };
     </script>
 </body>
