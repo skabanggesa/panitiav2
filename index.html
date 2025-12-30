@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SPPD: Pengurusan Panitia Digital SKAG</title>
+    <title>SPPD: Pengurusan Panitia Digital SK Abang Gesa</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Cinzel:wght@700&display=swap');
@@ -31,14 +31,14 @@
                 </div>
                 <div>
                     <h1 class="text-lg md:text-xl font-bold font-cinzel text-yellow-400 leading-none">SPPD</h1>
-                    <p class="text-[10px] md:text-xs tracking-tighter opacity-80 uppercase font-bold">Fail Panitia Digital SK Abang Gesa</p>
+                    <p class="text-[10px] md:text-xs tracking-tighter opacity-80 uppercase font-bold">Panitia Digital SKAG</p>
                 </div>
             </div>
 
             <div class="flex items-center space-x-4">
                 <div class="text-right hidden sm:block leading-tight">
                     <p class="text-[9px] text-indigo-300 uppercase font-bold">Log Masuk Sebagai:</p>
-                    <p id="user-display" class="text-xs font-bold text-white uppercase tracking-wide italic">...</p>
+                    <p id="user-display" class="text-xs font-bold text-white uppercase tracking-wide italic">Memuatkan nama...</p>
                 </div>
                 
                 <div class="flex flex-col">
@@ -58,7 +58,6 @@
                 <div class="text-center mb-8">
                     <img src="sppd.png" class="h-16 mx-auto mb-4" alt="SPPD">
                     <h2 class="text-2xl font-bold text-indigo-900 font-cinzel uppercase">Log Masuk Sistem</h2>
-                    <p class="text-xs text-gray-400 mt-2 italic">Sila masukkan emel dan kata laluan portal anda.</p>
                 </div>
                 <form id="auth-form" class="space-y-4">
                     <input type="email" id="auth-email" placeholder="Emel Pengguna" required class="w-full border rounded-xl p-3 bg-gray-50 outline-indigo-500">
@@ -170,25 +169,31 @@
 
         const panitiaList = ["Bahasa Melayu", "Bahasa Inggeris", "Matematik", "Sains", "Pendidikan Islam", "Sejarah", "RBT", "PJK", "Seni Visual"];
         const folderList = [
-            { name: "Fail Induk", icon: "📋" },
-            { name: "Kurikulum & DSKP", icon: "📚" },
-            { name: "Minit Mesyuarat", icon: "🗓️" },
-            { name: "PBD & Analisis", icon: "📊" },
-            { name: "Laporan Aktiviti", icon: "🚀" },
-            { name: "Pencerapan Guru", icon: "👀" }
+            { name: "Fail Induk", icon: "📋" }, { name: "Kurikulum & DSKP", icon: "📚" },
+            { name: "Minit Mesyuarat", icon: "🗓️" }, { name: "PBD & Analisis", icon: "📊" },
+            { name: "Laporan Aktiviti", icon: "🚀" }, { name: "Pencerapan Guru", icon: "👀" }
         ];
 
-        // 1. PENGURUSAN SESI (SESSION CHECK)
+        // 1. PENGURUSAN SESI & PROFIL PENGGUNA
         onAuthStateChanged(auth, async (user) => {
             const loader = document.getElementById('main-loader');
             if (user) {
                 currentUser = user;
-                // AMBIL NAMA DARI KOLEKSI 'pengguna'
                 try {
+                    // Mengambil data dari koleksi 'pengguna' menggunakan UID
                     const docRef = doc(db, "pengguna", user.uid);
                     const docSnap = await getDoc(docRef);
-                    currentNama = docSnap.exists() ? docSnap.data().nama : user.email.split('@')[0];
-                } catch (e) { currentNama = user.email; }
+                    
+                    if (docSnap.exists()) {
+                        // Menggunakan medan 'nama_penuh' mengikut tangkap layar firestore anda
+                        currentNama = docSnap.data().nama_penuh || user.email.split('@')[0];
+                    } else {
+                        currentNama = user.email.split('@')[0];
+                    }
+                } catch (e) { 
+                    console.error("Gagal mengambil profil:", e);
+                    currentNama = user.email; 
+                }
 
                 document.getElementById('user-display').textContent = currentNama;
                 document.getElementById('auth-view').classList.add('hidden');
@@ -205,10 +210,8 @@
         // 2. AUTH LOGIC
         document.getElementById('auth-form').onsubmit = async (e) => {
             e.preventDefault();
-            const email = document.getElementById('auth-email').value;
-            const pass = document.getElementById('auth-password').value;
             try {
-                await signInWithEmailAndPassword(auth, email, pass);
+                await signInWithEmailAndPassword(auth, document.getElementById('auth-email').value, document.getElementById('auth-password').value);
             } catch (err) { alert("RALAT: Emel atau Kata Laluan Salah!"); }
         };
 
@@ -279,7 +282,7 @@
                 const tbody = document.getElementById('content-list');
                 tbody.innerHTML = "";
                 if(snap.empty) {
-                    tbody.innerHTML = `<tr><td colspan="3" class="p-12 text-center text-gray-400 italic">Tiada fail ditemui dalam folder ini.</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="3" class="p-12 text-center text-gray-400 italic">Tiada fail ditemui.</td></tr>`;
                     return;
                 }
                 snap.forEach(docSnap => {
@@ -289,7 +292,7 @@
                     tr.innerHTML = `
                         <td class="px-6 py-4">
                             <div class="font-bold text-indigo-900 uppercase">${d.title}</div>
-                            <div class="text-[10px] text-gray-500 italic mt-1">${d.content || 'Tiada nota tambahan'}</div>
+                            <div class="text-[10px] text-gray-500 italic mt-1">${d.content || 'Tiada nota'}</div>
                         </td>
                         <td class="px-6 py-4">
                             <div class="text-[10px] font-bold text-gray-700">${d.date}</div>
@@ -297,8 +300,8 @@
                         </td>
                         <td class="px-6 py-4 text-right space-x-2 whitespace-nowrap">
                             ${d.fileUrl ? `<a href="${d.fileUrl}" target="_blank" class="bg-indigo-600 text-white px-3 py-1 rounded-full text-[10px] font-bold shadow-md">LIHAT FAIL</a>` : ''}
-                            <button onclick="openCrudModal('edit', '${docSnap.id}', '${d.title}', '${d.date}', '${d.content}')" class="text-amber-500 text-lg">✏️</button>
-                            <button onclick="deleteItem('${docSnap.id}')" class="text-red-500 text-lg">🗑️</button>
+                            <button onclick="openCrudModal('edit', '${docSnap.id}', '${d.title}', '${d.date}', '${d.content}')" class="text-amber-500">✏️</button>
+                            <button onclick="deleteItem('${docSnap.id}')" class="text-red-500">🗑️</button>
                         </td>
                     `;
                     tbody.appendChild(tr);
@@ -312,7 +315,6 @@
             document.getElementById('item-title').value = title;
             document.getElementById('item-date').value = date || new Date().toISOString().split('T')[0];
             document.getElementById('item-content').value = content;
-            document.getElementById('item-file').value = "";
             document.getElementById('crud-modal').classList.replace('hidden', 'flex');
         };
 
@@ -351,7 +353,7 @@
                 else await addDoc(collection(db, "sesi", selectedSesi, "panitia_data"), data);
 
                 closeModal();
-            } catch (err) { alert("Ralat Simpan: " + err.message); }
+            } catch (err) { alert("Ralat: " + err.message); }
             finally {
                 saveBtn.disabled = false;
                 saveBtn.innerText = "SIMPAN DATA";
@@ -366,4 +368,3 @@
     </script>
 </body>
 </html>
-
