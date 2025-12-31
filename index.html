@@ -15,6 +15,7 @@
         /* Animasi Loader */
         .loader-spinner { border: 4px solid #f3f3f3; border-top: 4px solid #3730a3; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .no-print { @media print { display: none; } }
     </style>
 </head>
 <body>
@@ -34,7 +35,7 @@
             <div class="flex items-center space-x-4">
                 <div class="text-right hidden sm:block">
                     <p class="text-[9px] text-indigo-300 uppercase font-bold leading-none">Log Masuk Sebagai:</p>
-                    <p id="user-display" class="text-xs font-semibold text-white italic"></p>
+                    <p id="user-display" class="text-xs font-semibold text-white italic">Memuatkan nama...</p>
                 </div>
 
                 <div class="h-8 w-[1px] bg-indigo-700 hidden sm:block"></div>
@@ -156,7 +157,6 @@
                     <div class="bg-indigo-50 p-4 rounded-2xl border-2 border-dashed border-indigo-200">
                         <label class="block text-xs font-bold text-indigo-900 uppercase">Muat Naik Fail (Cloud Storage)</label>
                         <input type="file" id="item-file" class="mt-2 text-xs w-full cursor-pointer file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-700">
-                        <p class="text-[9px] text-gray-500 mt-2">* Fail akan disimpan dalam server portal-8368.</p>
                     </div>
                     <div class="flex justify-end space-x-3 mt-8">
                         <button type="button" onclick="closeModal('crud-modal')" class="px-6 py-3 text-gray-600 font-bold hover:text-indigo-600 transition">BATAL</button>
@@ -170,10 +170,9 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
         import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
-        import { getFirestore, collection, addDoc, query, where, onSnapshot, doc, deleteDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, query, where, getDocs, onSnapshot, doc, getDoc, deleteDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
         import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-storage.js";
 
-        // CONFIG: PORTAL-8368
         const firebaseConfig = {
             apiKey: "AIzaSyCwh99Ui4KPXgC-W-CpCg-edYnHN3aVmrk",
             authDomain: "portal-8368.firebaseapp.com",
@@ -189,6 +188,7 @@
         const storage = getStorage(app);
 
         let currentUser = null;
+        let currentNama = ""; // Menyimpan Nama Penuh Guru
         let isLoginMode = true;
         let selectedSesi = "2024_2025";
         let currentPanitia = "";
@@ -197,20 +197,37 @@
 
         const panitiaList = ["Bahasa Melayu", "Bahasa Inggeris", "Matematik", "Sains", "Pendidikan Islam", "Sejarah", "RBT", "PJK", "Seni Visual"];
         const folderList = [
-            { name: "Fail Induk", icon: "📋" },
-            { name: "Kurikulum & DSKP", icon: "📚" },
-            { name: "Minit Mesyuarat", icon: "🗓️" },
-            { name: "PBD & Analisis", icon: "📊" },
-            { name: "Laporan Aktiviti", icon: "🚀" },
-            { name: "Pencerapan Guru", icon: "👀" }
+            { name: "Fail Induk", icon: "📋" }, { name: "Kurikulum & DSKP", icon: "📚" },
+            { name: "Minit Mesyuarat", icon: "🗓️" }, { name: "PBD & Analisis", icon: "📊" },
+            { name: "Laporan Aktiviti", icon: "🚀" }, { name: "Pencerapan Guru", icon: "👀" }
         ];
 
-        // 1. AUTH & AUTO-LOGIN
-        onAuthStateChanged(auth, (user) => {
+        // 1. FUNGSI PENGAMBILAN PROFIL GURU (FIRESTORE)
+        async function fetchTeacherName(user) {
+            try {
+                // Cari profil dalam koleksi 'pengguna' mengikut emel
+                const q = query(collection(db, "pengguna"), where("emel", "==", user.email));
+                const querySnapshot = await getDocs(q);
+                
+                if (!querySnapshot.empty) {
+                    const userData = querySnapshot.docs[0].data();
+                    return userData.nama_penuh || user.email;
+                }
+            } catch (err) {
+                console.error("Gagal ambil nama:", err);
+            }
+            return user.email; // Fallback jika tiada rekod
+        }
+
+        // 2. AUTH & AUTO-LOGIN
+        onAuthStateChanged(auth, async (user) => {
             currentUser = user;
             document.getElementById('loader').classList.add('hidden');
             if (user) {
-                document.getElementById('user-display').textContent = user.email; // Paparan Emel di Header
+                // Kemaskini nama di header menggunakan profil Firestore
+                currentNama = await fetchTeacherName(user);
+                document.getElementById('user-display').textContent = currentNama;
+
                 document.getElementById('auth-view').classList.add('hidden');
                 document.getElementById('app-header').classList.remove('hidden');
                 showDashboard();
@@ -235,7 +252,16 @@
             const pass = document.getElementById('auth-password').value;
             try {
                 if (isLoginMode) await signInWithEmailAndPassword(auth, email, pass);
-                else await createUserWithEmailAndPassword(auth, email, pass);
+                else {
+                    const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
+                    // Daftar profil ringkas jika pengguna baru
+                    await addDoc(collection(db, "pengguna"), {
+                        emel: email,
+                        nama_penuh: email.split('@')[0].toUpperCase(),
+                        status: "aktif",
+                        tarikh_daftar: new Date().toISOString()
+                    });
+                }
             } catch (err) { alert("RALAT: " + err.message); }
         };
 
@@ -243,7 +269,7 @@
             if(confirm("Log keluar dari Sistem Panitia?")) signOut(auth);
         };
 
-        // 2. NAVIGATION LOGIC
+        // 3. NAVIGATION LOGIC
         window.updateSesi = (val) => { 
             selectedSesi = val; 
             if(currentFolder) showFolderContent();
@@ -298,7 +324,7 @@
             if(unsubTable) unsubTable();
         }
 
-        // 3. DATABASE & STORAGE LOGIC (CRUD)
+        // 4. DATABASE & STORAGE LOGIC (CRUD)
         function loadDataRealtime() {
             const q = query(
                 collection(db, "sesi", selectedSesi, "panitia_data"),
@@ -310,9 +336,7 @@
                 const tbody = document.getElementById('content-list');
                 tbody.innerHTML = "";
                 if(snapshot.empty) {
-                    tbody.innerHTML = `<tr><td colspan='3' class='p-12 text-center text-gray-400 italic text-sm'>
-                        <div class='mb-2 opacity-20 text-4xl'>📄</div>Tiada dokumen ditemui. Klik butang 'Tambah Dokumen' di atas.
-                    </td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan='3' class='p-12 text-center text-gray-400 italic text-sm'>Tiada dokumen ditemui.</td></tr>`;
                     return;
                 }
                 
@@ -322,17 +346,17 @@
                     tr.className = "hover:bg-indigo-50 transition";
                     tr.innerHTML = `
                         <td class="px-6 py-4">
-                            <div class="font-bold text-indigo-900">${d.title}</div>
-                            <div class="text-[10px] text-gray-400 mt-1 uppercase italic">${d.content || 'Tiada nota'}</div>
+                            <div class="font-bold text-indigo-900 uppercase">${d.title}</div>
+                            <div class="text-[10px] text-gray-400 mt-1 italic">${d.content || 'Tiada nota'}</div>
                         </td>
                         <td class="px-6 py-4">
                             <div class="text-xs font-bold text-gray-600">${d.date}</div>
-                            <div class="text-[9px] text-indigo-400">Oleh: ${d.authorEmail || 'Cikgu'}</div>
+                            <div class="text-[9px] text-indigo-400">Oleh: ${d.authorNama || d.authorEmail}</div>
                         </td>
                         <td class="px-6 py-4 text-right space-x-2 whitespace-nowrap">
-                            ${d.fileUrl ? `<a href="${d.fileUrl}" target="_blank" class="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full text-[10px] font-bold hover:bg-indigo-200 transition">LIHAT FAIL</a>` : ''}
-                            <button onclick="openCrudModal('edit', '${docSnap.id}', '${d.title}', '${d.date}', '${d.content}')" class="text-amber-600 hover:text-amber-700 text-lg">✏️</button>
-                            <button onclick="deleteDocItem('${docSnap.id}')" class="text-red-600 hover:text-red-700 text-lg">🗑️</button>
+                            ${d.fileUrl ? `<a href="${d.fileUrl}" target="_blank" class="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full text-[10px] font-bold">FAIL</a>` : ''}
+                            <button onclick="openCrudModal('edit', '${docSnap.id}', '${d.title}', '${d.date}', '${d.content}')" class="text-amber-600">✏️</button>
+                            <button onclick="deleteDocItem('${docSnap.id}')" class="text-red-600">🗑️</button>
                         </td>
                     `;
                     tbody.appendChild(tr);
@@ -344,9 +368,8 @@
             document.getElementById('modal-title').innerText = mode === 'add' ? "TAMBAH DOKUMEN" : "KEMASKINI DOKUMEN";
             document.getElementById('item-id').value = id;
             document.getElementById('item-title').value = title;
-            document.getElementById('item-date').value = date;
+            document.getElementById('item-date').value = date || new Date().toISOString().split('T')[0];
             document.getElementById('item-content').value = content;
-            document.getElementById('item-file').value = "";
             document.getElementById('crud-modal').classList.replace('hidden', 'flex');
         };
 
@@ -355,15 +378,14 @@
         document.getElementById('crud-form').onsubmit = async (e) => {
             e.preventDefault();
             const id = document.getElementById('item-id').value;
-            const fileInput = document.getElementById('item-file');
-            const file = fileInput.files[0];
+            const file = document.getElementById('item-file').files[0];
             const saveBtn = document.getElementById('save-btn');
             
             saveBtn.disabled = true;
-            saveBtn.innerHTML = "<div class='flex items-center'>Sedang Simpan...</div>";
+            saveBtn.innerText = "SIMPAN DATA...";
 
-            let fileUrl = "";
             try {
+                let fileUrl = "";
                 if (file) {
                     const fileRef = ref(storage, `panitia/${selectedSesi}/${currentPanitia}/${Date.now()}_${file.name}`);
                     const uploadRes = await uploadBytes(fileRef, file);
@@ -378,6 +400,7 @@
                     folder: currentFolder,
                     authorUid: currentUser.uid,
                     authorEmail: currentUser.email,
+                    authorNama: currentNama, // Nama Penuh disimpan ke dalam rekod panitia
                     updatedAt: serverTimestamp()
                 };
 
@@ -396,9 +419,7 @@
 
         window.deleteDocItem = async (id) => {
             if(confirm("AWAS: Padam dokumen ini secara kekal?")) {
-                try {
-                    await deleteDoc(doc(db, "sesi", selectedSesi, "panitia_data", id));
-                } catch (err) { alert("Gagal Padam: " + err.message); }
+                await deleteDoc(doc(db, "sesi", selectedSesi, "panitia_data", id));
             }
         };
     </script>
