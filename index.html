@@ -266,8 +266,15 @@
         };
 
         document.getElementById('logout-button').onclick = () => {
-            if(confirm("Log keluar dari Sistem Panitia?")) signOut(auth);
-        };
+    if(confirm("Log keluar dari Sistem Panitia?")) {
+        signOut(auth).then(() => {
+            // Tukar 'portal.html' kepada URL atau nama fail portal anda
+            window.location.href = "http://skabanggesa.github.io/sage"; 
+        }).catch((error) => {
+            console.error("Ralat Log Keluar:", error);
+        });
+    }
+};
 
         // 3. NAVIGATION LOGIC
         window.updateSesi = (val) => { 
@@ -425,4 +432,5 @@
     </script>
 </body>
 </html>
+
 
