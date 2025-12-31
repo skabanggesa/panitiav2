@@ -154,10 +154,13 @@
                         <label class="block text-xs font-bold text-gray-600 uppercase">Penerangan / Catatan</label>
                         <textarea id="item-content" rows="2" placeholder="Masukkan nota atau catatan ringkas jika perlu..." class="w-full border rounded-xl p-3 mt-1 bg-gray-50 outline-indigo-500"></textarea>
                     </div>
-                    <div class="bg-indigo-50 p-4 rounded-2xl border-2 border-dashed border-indigo-200">
-                        <label class="block text-xs font-bold text-indigo-900 uppercase">Muat Naik Fail (Cloud Storage)</label>
-                        <input type="file" id="item-file" class="mt-2 text-xs w-full cursor-pointer file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-700">
+                    
+                    <div class="bg-blue-50 p-4 rounded-2xl border-2 border-dashed border-blue-200">
+                        <label class="block text-xs font-bold text-blue-900 uppercase">Pautan Dokumen (Google Drive/Lain-lain)</label>
+                        <input type="url" id="item-link" placeholder="Tampal pautan (Link) fail di sini..." class="w-full border rounded-xl p-3 mt-1 bg-white outline-blue-500 text-xs">
+                        <p class="text-[9px] text-blue-500 mt-1">*Sila muat naik fail ke Drive sekolah dan tampal pautan "Share" di sini.</p>
                     </div>
+
                     <div class="flex justify-end space-x-3 mt-8">
                         <button type="button" onclick="closeModal('crud-modal')" class="px-6 py-3 text-gray-600 font-bold hover:text-indigo-600 transition">BATAL</button>
                         <button type="submit" id="save-btn" class="px-8 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 shadow-lg active:scale-95 transition">SIMPAN DATA</button>
@@ -171,7 +174,6 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
         import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
         import { getFirestore, collection, addDoc, query, where, getDocs, onSnapshot, doc, getDoc, deleteDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
-        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-storage.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCwh99Ui4KPXgC-W-CpCg-edYnHN3aVmrk",
@@ -185,10 +187,9 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const storage = getStorage(app);
 
         let currentUser = null;
-        let currentNama = ""; // Menyimpan Nama Penuh Guru
+        let currentNama = ""; 
         let isLoginMode = true;
         let selectedSesi = "2024_2025";
         let currentPanitia = "";
@@ -202,21 +203,17 @@
             { name: "Laporan Aktiviti", icon: "🚀" }, { name: "Pencerapan Guru", icon: "👀" }
         ];
 
-        // 1. FUNGSI PENGAMBILAN PROFIL GURU (FIRESTORE)
+        // 1. FUNGSI PENGAMBILAN PROFIL GURU
         async function fetchTeacherName(user) {
             try {
-                // Cari profil dalam koleksi 'pengguna' mengikut emel
                 const q = query(collection(db, "pengguna"), where("emel", "==", user.email));
                 const querySnapshot = await getDocs(q);
-                
                 if (!querySnapshot.empty) {
                     const userData = querySnapshot.docs[0].data();
                     return userData.nama_penuh || user.email;
                 }
-            } catch (err) {
-                console.error("Gagal ambil nama:", err);
-            }
-            return user.email; // Fallback jika tiada rekod
+            } catch (err) { console.error("Gagal ambil nama:", err); }
+            return user.email;
         }
 
         // 2. AUTH & AUTO-LOGIN
@@ -224,10 +221,8 @@
             currentUser = user;
             document.getElementById('loader').classList.add('hidden');
             if (user) {
-                // Kemaskini nama di header menggunakan profil Firestore
                 currentNama = await fetchTeacherName(user);
                 document.getElementById('user-display').textContent = currentNama;
-
                 document.getElementById('auth-view').classList.add('hidden');
                 document.getElementById('app-header').classList.remove('hidden');
                 showDashboard();
@@ -253,8 +248,7 @@
             try {
                 if (isLoginMode) await signInWithEmailAndPassword(auth, email, pass);
                 else {
-                    const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
-                    // Daftar profil ringkas jika pengguna baru
+                    await createUserWithEmailAndPassword(auth, email, pass);
                     await addDoc(collection(db, "pengguna"), {
                         emel: email,
                         nama_penuh: email.split('@')[0].toUpperCase(),
@@ -266,15 +260,12 @@
         };
 
         document.getElementById('logout-button').onclick = () => {
-    if(confirm("Log keluar dari Sistem Panitia?")) {
-        signOut(auth).then(() => {
-            // Tukar 'portal.html' kepada URL atau nama fail portal anda
-            window.location.href = "http://skabanggesa.github.io/sage"; 
-        }).catch((error) => {
-            console.error("Ralat Log Keluar:", error);
-        });
-    }
-};
+            if(confirm("Log keluar dari Sistem Panitia?")) {
+                signOut(auth).then(() => {
+                    window.location.href = "http://skabanggesa.github.io/sage"; 
+                }).catch((error) => { console.error("Ralat Log Keluar:", error); });
+            }
+        };
 
         // 3. NAVIGATION LOGIC
         window.updateSesi = (val) => { 
@@ -331,7 +322,7 @@
             if(unsubTable) unsubTable();
         }
 
-        // 4. DATABASE & STORAGE LOGIC (CRUD)
+        // 4. DATABASE LOGIC (CRUD)
         function loadDataRealtime() {
             const q = query(
                 collection(db, "sesi", selectedSesi, "panitia_data"),
@@ -362,7 +353,7 @@
                         </td>
                         <td class="px-6 py-4 text-right space-x-2 whitespace-nowrap">
                             ${d.fileUrl ? `<a href="${d.fileUrl}" target="_blank" class="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full text-[10px] font-bold">FAIL</a>` : ''}
-                            <button onclick="openCrudModal('edit', '${docSnap.id}', '${d.title}', '${d.date}', '${d.content}')" class="text-amber-600">✏️</button>
+                            <button onclick="openCrudModal('edit', '${docSnap.id}', '${d.title}', '${d.date}', '${d.content}', '${d.fileUrl || ''}')" class="text-amber-600">✏️</button>
                             <button onclick="deleteDocItem('${docSnap.id}')" class="text-red-600">🗑️</button>
                         </td>
                     `;
@@ -371,12 +362,13 @@
             });
         }
 
-        window.openCrudModal = (mode, id='', title='', date='', content='') => {
+        window.openCrudModal = (mode, id='', title='', date='', content='', fileUrl='') => {
             document.getElementById('modal-title').innerText = mode === 'add' ? "TAMBAH DOKUMEN" : "KEMASKINI DOKUMEN";
             document.getElementById('item-id').value = id;
             document.getElementById('item-title').value = title;
             document.getElementById('item-date').value = date || new Date().toISOString().split('T')[0];
             document.getElementById('item-content').value = content;
+            document.getElementById('item-link').value = fileUrl; // Isi pautan sedia ada jika edit
             document.getElementById('crud-modal').classList.replace('hidden', 'flex');
         };
 
@@ -385,33 +377,25 @@
         document.getElementById('crud-form').onsubmit = async (e) => {
             e.preventDefault();
             const id = document.getElementById('item-id').value;
-            const file = document.getElementById('item-file').files[0];
+            const driveLink = document.getElementById('item-link').value;
             const saveBtn = document.getElementById('save-btn');
             
             saveBtn.disabled = true;
             saveBtn.innerText = "SIMPAN DATA...";
 
             try {
-                let fileUrl = "";
-                if (file) {
-                    const fileRef = ref(storage, `panitia/${selectedSesi}/${currentPanitia}/${Date.now()}_${file.name}`);
-                    const uploadRes = await uploadBytes(fileRef, file);
-                    fileUrl = await getDownloadURL(uploadRes.ref);
-                }
-
                 const payload = {
                     title: document.getElementById('item-title').value,
                     date: document.getElementById('item-date').value,
                     content: document.getElementById('item-content').value,
+                    fileUrl: driveLink, // Simpan pautan Drive ke dalam Firestore
                     panitia: currentPanitia,
                     folder: currentFolder,
                     authorUid: currentUser.uid,
                     authorEmail: currentUser.email,
-                    authorNama: currentNama, // Nama Penuh disimpan ke dalam rekod panitia
+                    authorNama: currentNama,
                     updatedAt: serverTimestamp()
                 };
-
-                if(fileUrl) payload.fileUrl = fileUrl;
 
                 if(id) await updateDoc(doc(db, "sesi", selectedSesi, "panitia_data", id), payload);
                 else await addDoc(collection(db, "sesi", selectedSesi, "panitia_data"), payload);
@@ -432,5 +416,3 @@
     </script>
 </body>
 </html>
-
-
